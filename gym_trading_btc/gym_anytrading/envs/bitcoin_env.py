@@ -9,6 +9,7 @@ class CryptoEnv(CryptoTradingEnv):
     def __init__(self, df, window_size, frame_len, start_budget=100000):
         super().__init__(df, window_size, frame_len, start_budget)
         self.trade_fee_bid_percent = 0.01  # unit
+        self.bid = 10 #units of btc
 
     def _process_data(self):
 
@@ -22,25 +23,35 @@ class CryptoEnv(CryptoTradingEnv):
                                ].to_numpy()
 
         diff = np.insert(np.diff(prices), 0, 0)
-        signal_features = np.c_((features, diff))
+        signal_features = np.c_[features, diff]
 
         return prices, signal_features
 
     def _calculate_reward(self, action):
-        current_price = self.prices[self._current_tick]
-        last_trade_price = self.prices[self._last_trade_tick]
+        current_price = self.prices[int(self._current_tick)]
+        last_trade_price = self.prices[int(self._last_trade_tick)]
         price_diff = current_price - last_trade_price
 
-        if action != 0:
-            return - price_diff * action
-
-        return price_diff
+        
+        if action == 1: # buy
+            return - price_diff
+        elif action ==2: #sell
+            return price_diff
+        else:
+            return 0
 
     def _update_profit(self, action):
-        p = self.prices[self._current_tick]
-        self._budget -= action * p * (1 - self.trade_fee_bid_percent)
-        self._quantity += action
-        self._total_profit = self._quantity * p + self._budget
+        
+        # faux, il faut aller voir avec comme la fonction calculate reward
+        p = self.prices[int(self._current_tick)]
+        if action == 1: # buy
+            self._budget += self.bid * p * (1 - self.trade_fee_bid_percent)
+            self._quantity += self.bid
+            self._total_profit = self._quantity * p + self._budget
+        elif action ==2: #sell
+            self._budget -= self.bid * p * (1 - self.trade_fee_bid_percent)
+            self._quantity -= self.bid
+            self._total_profit = self._quantity * p + self._budget
 
     def max_possible_profit(self):
         # la fonction est à réécrire, mais dans l'idée, c'est ça

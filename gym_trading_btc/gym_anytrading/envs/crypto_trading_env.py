@@ -3,7 +3,22 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 import matplotlib.pyplot as plt
+from enum import Enum
 
+from sympy import solve_univariate_inequality
+
+class Actions(Enum):
+    Sell = 2
+    STAY = 0
+    Buy = 1
+
+
+class Positions(Enum):
+    Short = 0
+    Long = 1
+
+    def opposite(self):
+        return Positions.Short if self == Positions.Long else Positions.Long
 
 class CryptoTradingEnv(gym.Env):
 
@@ -21,13 +36,11 @@ class CryptoTradingEnv(gym.Env):
         self.shape = (window_size, self.signal_features.shape[1])
 
         # spaces
-        self.action_space = spaces.Box(
-            low=-np.inf, high=np.inf, dtype=np.float32)
-        self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float32)
+        self.action_space = spaces.Discrete(len(Actions))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float32)
 
         # episode
-        self._max_start_tick = self.frame_len - len(self.prices) - window_size
+        self._max_start_tick = len(self.prices) - self.frame_len
         self._start_tick = self.window_size
         self._end_tick = len(self.prices) - 1
         self._start_budget = start_budget
@@ -49,7 +62,7 @@ class CryptoTradingEnv(gym.Env):
 
     def reset(self):
         self._done = False
-        self._padding_tick = np.floor(self.np_random() * self._max_start_tick)
+        self._padding_tick = np.floor(np.random.rand() * self._max_start_tick)
         self._current_tick = self._start_tick + self._padding_tick
         self._end_tick = self._current_tick + self.frame_len
         self._last_trade_tick = self._current_tick - 1
@@ -57,7 +70,7 @@ class CryptoTradingEnv(gym.Env):
         self._quantity = 0.
         self._position_history = (self.window_size * [0])
         self._total_profit = self._start_budget  # unit
-        self._budget = self.start_budget
+        self._budget = self._start_budget
         self._first_rendering = True
         self.history = {}
         return self._get_observation()
@@ -74,7 +87,7 @@ class CryptoTradingEnv(gym.Env):
 
         self._update_profit(action)
 
-        trade = action != 0
+        trade = action !=0
 
         if trade:
             self._last_trade_tick = self._current_tick
@@ -91,7 +104,7 @@ class CryptoTradingEnv(gym.Env):
         return observation, step_reward, self._done, info
 
     def _get_observation(self):
-        return self.signal_features[(self._current_tick-self.window_size):self._current_tick]
+        return self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]
 
     def _update_history(self, info):
         if not self.history:
@@ -130,23 +143,66 @@ class CryptoTradingEnv(gym.Env):
 
         plt.pause(0.01)
 
-    def render_all(self, mode='human'):
-        window_ticks = np.arange(len(self._position_history))
-        plt.plot(self.prices)
+    def render_all(self, mode='human', window = 'local'):
+        if window == 'large':
+            window_ticks = np.arange(len(self._position_history))
+            plt.plot(self.prices)
+            
+            self._position_history = np.array(self._position_history)
+            
+            start = self._current_tick - self.frame_len - self.window_size
+            
+            buy_ind = np.array([int(start+i) for i,a in enumerate(self._position_history) if a == 1])
+            buy_val = np.array([self.prices[a] for a in buy_ind])
+            plt.scatter(buy_ind, buy_val, color='green')
 
-        buy = self._position_history > 0
-        plt.bar(window_ticks[buy], self._position_history[buy], color='green')
+            sell_ind = np.array([int(start+i) for i,a in enumerate(self._position_history) if a == 2])
+            sell_val = np.array([self.prices[a] for a in sell_ind])
+            plt.scatter(sell_ind, sell_val, color='red')
 
-        sell = self._position_history < 0
-        plt.bar(window_ticks[sell], self._position_history[sell], color='red')
+            stay_ind = np.array([int(start+i) for i,a in enumerate(self._position_history) if a == 0])
+            stay_val = np.array([self.prices[a] for a in stay_ind])
+            plt.scatter(stay_ind, stay_val, color='yellow')
+            
+            print(stay_ind)
 
-        stay = self._position_history == 0
-        plt.bar(window_ticks[stay], self._position_history[stay], color='blue')
+            plt.suptitle(
+                "Total Reward: %.6f" % self._total_reward + ' ~ ' +
+                "Total Portfolio: %.6f" % self._total_profit
+            )
+            plt.show()
+            
+        elif window == 'local':
+            window_ticks = np.arange(len(self._position_history))
+            
+            self.prices_reduced = np.array(self.prices[int(self._current_tick-self.frame_len-self.window_size):int(self._current_tick)])
+            
+            plt.plot(self.prices_reduced)
+            self._position_history = np.array(self._position_history)
+            
+            
+            buy_ind = np.array([int(i) for i,a in enumerate(self._position_history) if a == 1])
+            buy_val = np.array([self.prices_reduced[a] for a in buy_ind])
+            
+            plt.scatter(buy_ind, buy_val, color='green')
 
-        plt.suptitle(
-            "Total Reward: %.6f" % self._total_reward + ' ~ ' +
-            "Total Profit: %.6f" % self._total_profit
-        )
+            sell_ind = np.array([int(i) for i,a in enumerate(self._position_history) if a == 2])
+            sell_val = np.array([self.prices_reduced[a] for a in sell_ind])
+            plt.scatter(sell_ind, sell_val, color='red')
+
+            stay_ind = np.array([int(i) for i,a in enumerate(self._position_history) if a == 0])
+            stay_val = np.array([self.prices_reduced[a] for a in stay_ind])
+            plt.scatter(stay_ind, stay_val, color='yellow')
+            
+            print(stay_ind)
+
+            plt.suptitle(
+                "Total Reward: %.6f" % self._total_reward + ' ~ ' +
+                "Total Profit: %.6f" % self._total_profit
+            )
+            plt.show()
+        else:
+            raise NotImplementedError
 
     def close(self):
         plt.close()
