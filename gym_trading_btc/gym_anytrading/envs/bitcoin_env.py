@@ -40,16 +40,16 @@ class CryptoEnv(CryptoTradingEnv):
         else:
             return 0
 
-    def _update_profit(self, action):
+    def _update_profit(self, action): # Je mets dans CryptoTrading la MaJ du buget et de la quantité
         
         # faux, il faut aller voir avec comme la fonction calculate reward
         p = self.prices[int(self._current_tick)]
         if action == 1: # buy
-            self._budget += self.bid * p * (1 - self.trade_fee_bid_percent)
+            self._budget -= self.bid * p * (1 + self.trade_fee_bid_percent)
             self._quantity += self.bid
             self._total_profit = self._quantity * p + self._budget
         elif action ==2: #sell
-            self._budget -= self.bid * p * (1 - self.trade_fee_bid_percent)
+            self._budget += self.bid * p * (1 - self.trade_fee_bid_percent)
             self._quantity -= self.bid
             self._total_profit = self._quantity * p + self._budget
 

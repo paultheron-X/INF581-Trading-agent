@@ -87,7 +87,7 @@ class CryptoTradingEnv(gym.Env):
 
         self._update_profit(action)
 
-        trade = action !=0
+        trade = (action !=0)
 
         if trade:
             self._last_trade_tick = self._current_tick
