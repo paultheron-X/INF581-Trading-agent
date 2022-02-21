@@ -8,7 +8,7 @@ df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCU
 
 
 window_size = 2
-frame_len = 3
+frame_len = 6
 start_index = window_size
 end_index = len(df_btc)
 
@@ -28,6 +28,6 @@ while True:
         break
 
 plt.figure(figsize=(16, 6))
-env.render_all(window='large')
+env.render_all(window='local')
 #plt.savefig("output.png")
 plt.show()

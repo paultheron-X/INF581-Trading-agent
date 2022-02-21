@@ -31,26 +31,30 @@ class CryptoEnv(CryptoTradingEnv):
     def _calculate_reward(self, action, terminal = False):
         next_price = self.prices[int(self._current_tick+1)]
         current_price = self.prices[int(self._current_tick)]
-        
-        if action == 1: # Buy
-            self._long +=1
-            current_transaction_amount = self._unit * current_price * (1+self.trade_fee_bid_percent) 
-            self._total_profit += current_transaction_amount
-        elif action == 2: #Sell
-            self._short +=1
-            current_transaction_amount = - self._unit * current_price * (1+self.trade_fee_bid_percent)
-            self._total_profit += current_transaction_amount
-        
-        reward = (self._long - self._short) * self._unit * (next_price - current_price)   # Quid du trade fee bid percent ?
-
+        print(current_price)
         
         if terminal:
+            print('salt')
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
-            positive_transation_amount = -self._long * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Sell everything I own
-            negative_transation_amount = self._short * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Buy everything I short
+            positive_transation_amount = self._long * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Sell everything I own
+            negative_transation_amount = -self._short * self._unit * current_price * (1-self.trade_fee_bid_percent)   # Buy everything I short
             self._total_profit += positive_transation_amount + negative_transation_amount
+            reward = self._total_profit
+            return reward
         
-        return reward
+        else: 
+            if action == 1: # Buy
+                self._long +=1
+                current_transaction_amount = -self._unit * current_price * (1+self.trade_fee_bid_percent) 
+                self._total_profit += current_transaction_amount
+            elif action == 2: #Sell
+                self._short +=1
+                current_transaction_amount = self._unit * current_price * (1-self.trade_fee_bid_percent)
+                self._total_profit += current_transaction_amount
+            
+            reward = (self._long - self._short) * self._unit * (next_price - current_price)   # Quid du trade fee bid percent ?
+        
+            return reward
 
     def _update_profit_reward(self, action, terminal = False): # Je mets dans CryptoTrading la MaJ du buget et de la quantité
         if not terminal:
@@ -58,7 +62,7 @@ class CryptoEnv(CryptoTradingEnv):
             self._total_reward +=instant_reward
             return instant_reward
         else:                                               # l'etat est terminal, il faut en plus vendre tout ce qu'on a
-            instant_reward = self._calculate_reward(action = action)
+            instant_reward = self._calculate_reward(action = action, terminal= True)
             self._total_reward +=instant_reward
             return instant_reward
 

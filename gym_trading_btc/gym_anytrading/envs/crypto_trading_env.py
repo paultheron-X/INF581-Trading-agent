@@ -73,7 +73,7 @@ class CryptoTradingEnv(gym.Env):
         self._total_reward = 0.
         self._last_reward = 0.
         #self._quantity = 0.
-        self._position_history = (self.window_size * [0])
+        self._position_history = []
         self._total_profit = 0  # unit
         #self._budget = self._start_budget
         #self._first_rendering = True
@@ -87,11 +87,11 @@ class CryptoTradingEnv(gym.Env):
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
             step_reward = self._update_profit_reward(action = action, terminal = True)
-            print(" > For this lase step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_reward))
+            print(" > For this lase step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_profit))
         else:
             self._done = False
             step_reward = self._update_profit_reward(action)
-            print("     > For this step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_reward))
+            print("     > For this step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_profit))
 
         self._last_reward = step_reward
         self._position_history.append(action)
@@ -153,7 +153,7 @@ class CryptoTradingEnv(gym.Env):
             
             self._position_history = np.array(self._position_history)
             
-            start = self._current_tick - self.frame_len - self.window_size
+            start = self._current_tick - self.frame_len+1
             
             buy_ind = np.array([int(start+i) for i,a in enumerate(self._position_history) if a == 1])
             buy_val = np.array([self.prices[a] for a in buy_ind])
@@ -176,7 +176,7 @@ class CryptoTradingEnv(gym.Env):
         elif window == 'local':
             window_ticks = np.arange(len(self._position_history))
             
-            self.prices_reduced = np.array(self.prices[int(self._current_tick-self.frame_len-self.window_size):int(self._current_tick)])
+            self.prices_reduced = np.array(self.prices[int(self._current_tick-self.frame_len+1):int(self._current_tick+1)])
             
             plt.plot(self.prices_reduced)
             self._position_history = np.array(self._position_history)
