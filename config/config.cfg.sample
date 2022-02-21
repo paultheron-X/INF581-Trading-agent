@@ -1,0 +1,37 @@
+[global]
+PARENT_DIR = 
+
+[logging]
+LOG_FILE = 
+SAVE_DIR = 
+TENSORBOARD_LOG_DIR = 
+
+[preprocessing]
+DATASET_PATH = 
+
+[dataset]
+BATCH_SIZE = 
+HISTORY_LENGTH = 
+HORIZON = 
+MEMORY_SIZE = 
+NUM_ACTIONS = 
+NUM_CHANNELS = 
+SPLIT_SIZE = 
+WINDOW_SIZE = 
+
+[dropout]
+CONV_KEEP_PROB = 
+DENSE_KEEP_PROB = 
+GRU_KEEP_PROB = 
+
+[convolution]
+FILTER_SIZES = 
+KERNEL_SIZES = 
+PADDING = 
+
+[gru]
+GRU_CELL_SIZE = 
+GRU_NUM_CELLS = 
+
+[dense]
+DENSE_LAYER_SIZES = 

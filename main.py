@@ -4,6 +4,8 @@ import gym_trading_btc.gym_anytrading as gym_anytrading
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from models.deepsense import *
+
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_1h.csv", delimiter= ",")
 
 
@@ -28,6 +30,6 @@ while True:
         break
 
 plt.figure(figsize=(16, 6))
-env.render_all(window='local')
+env.render_all(window='large')
 #plt.savefig("output.png")
 plt.show()
