@@ -5,11 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 
-from sympy import solve_univariate_inequality
 
 class Actions(Enum):
     Sell = 2
-    STAY = 0
+    Stay = 0
     Buy = 1
 
 
@@ -43,18 +42,23 @@ class CryptoTradingEnv(gym.Env):
         self._max_start_tick = len(self.prices) - self.frame_len
         self._start_tick = self.window_size
         self._end_tick = len(self.prices) - 1
-        self._start_budget = start_budget
+        #self._start_budget = start_budget
         self._done = None
         self._current_tick = None
         self._padding_tick = None
-        self._last_trade_tick = None
+        #self._last_trade_tick = None
         self._position_history = None
         self._total_reward = None
-        self._budget = None
-        self._quantity = None
-        self._total_profit = None
-        self._first_rendering = None
+        self._last_reward = None
+        #self._budget = None
+        #self._quantity = None
+        #self._total_profit = None
+        #self._first_rendering = None
         self.history = None
+        
+        self._long = 0  # positive quantity
+        self._short = 0 # Positive -> amount that you short
+        
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -65,38 +69,37 @@ class CryptoTradingEnv(gym.Env):
         self._padding_tick = np.floor(np.random.rand() * self._max_start_tick)
         self._current_tick = self._start_tick + self._padding_tick
         self._end_tick = self._current_tick + self.frame_len
-        self._last_trade_tick = self._current_tick - 1
+        #self._last_trade_tick = self._current_tick - 1
         self._total_reward = 0.
-        self._quantity = 0.
+        self._last_reward = 0.
+        #self._quantity = 0.
         self._position_history = (self.window_size * [0])
-        self._total_profit = self._start_budget  # unit
-        self._budget = self._start_budget
-        self._first_rendering = True
+        self._total_profit = 0  # unit
+        #self._budget = self._start_budget
+        #self._first_rendering = True
         self.history = {}
         return self._get_observation()
 
     def step(self, action):
-        self._done = False
         self._current_tick += 1
 
         if self._current_tick == self._end_tick:
             self._done = True
+            # Il faut tout revendre pour tomber à zero action short ou possédée
+            step_reward = self._update_profit_reward(action = action, terminal = True)
+            print(" > For this lase step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_reward))
+        else:
+            self._done = False
+            step_reward = self._update_profit_reward(action)
+            print("     > For this step, Action :  " + str(action) +  " | Reward : " + str(step_reward) + " | Total profit " + str(self._total_reward))
 
-        step_reward = self._calculate_reward(action)
-        self._total_reward += step_reward
-
-        self._update_profit(action)
-
-        trade = (action !=0)
-
-        if trade:
-            self._last_trade_tick = self._current_tick
-
+        self._last_reward = step_reward
         self._position_history.append(action)
         observation = self._get_observation()
+        
         info = dict(
-            total_reward=self._total_reward,
-            total_profit=self._total_profit,
+            current_reward=self._last_reward,
+            total_profit=self._total_reward,
             position=action
         )
         self._update_history(info)
@@ -164,8 +167,6 @@ class CryptoTradingEnv(gym.Env):
             stay_val = np.array([self.prices[a] for a in stay_ind])
             plt.scatter(stay_ind, stay_val, color='yellow')
             
-            print(stay_ind)
-
             plt.suptitle(
                 "Total Reward: %.6f" % self._total_reward + ' ~ ' +
                 "Total Portfolio: %.6f" % self._total_profit
@@ -193,8 +194,6 @@ class CryptoTradingEnv(gym.Env):
             stay_ind = np.array([int(i) for i,a in enumerate(self._position_history) if a == 0])
             stay_val = np.array([self.prices_reduced[a] for a in stay_ind])
             plt.scatter(stay_ind, stay_val, color='yellow')
-            
-            print(stay_ind)
 
             plt.suptitle(
                 "Total Reward: %.6f" % self._total_reward + ' ~ ' +
@@ -216,10 +215,10 @@ class CryptoTradingEnv(gym.Env):
     def _process_data(self):
         raise NotImplementedError
 
-    def _calculate_reward(self, action):
+    def _calculate_reward(self, action, terminal = False):
         raise NotImplementedError
 
-    def _update_profit(self, action):
+    def _update_profit_reward(self, action, terminal = False):
         raise NotImplementedError
 
     def max_possible_profit(self):  # trade fees are ignored

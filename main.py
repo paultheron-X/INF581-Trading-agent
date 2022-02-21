@@ -24,10 +24,10 @@ while True:
     
     
     if done:
-        print("info:", info)
+        print("> Ending episode")
         break
 
 plt.figure(figsize=(16, 6))
-env.render_all()
+env.render_all(window='large')
 #plt.savefig("output.png")
 plt.show()

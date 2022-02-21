@@ -9,7 +9,8 @@ class CryptoEnv(CryptoTradingEnv):
     def __init__(self, df, window_size, frame_len, start_budget=100000):
         super().__init__(df, window_size, frame_len, start_budget)
         self.trade_fee_bid_percent = 0.01  # unit
-        self.bid = 10 #units of btc
+        self._unit = 1 #units of btc
+        
 
     def _process_data(self):
 
@@ -27,31 +28,31 @@ class CryptoEnv(CryptoTradingEnv):
 
         return prices, signal_features
 
-    def _calculate_reward(self, action):
+    def _calculate_reward(self, action, terminal = False):
+        next_price = self.prices[int(self._current_tick+1)]
         current_price = self.prices[int(self._current_tick)]
-        last_trade_price = self.prices[int(self._last_trade_tick)]
-        price_diff = current_price - last_trade_price
-
         
-        if action == 1: # buy
-            return - price_diff
-        elif action ==2: #sell
-            return price_diff
-        else:
-            return 0
-
-    def _update_profit(self, action): # Je mets dans CryptoTrading la MaJ du buget et de la quantité
+        if action == 1: # Buy
+            self._long +=1
+        elif action == 2: #Sell
+            self._short +=1
         
-        # faux, il faut aller voir avec comme la fonction calculate reward
-        p = self.prices[int(self._current_tick)]
-        if action == 1: # buy
-            self._budget -= self.bid * p * (1 + self.trade_fee_bid_percent)
-            self._quantity += self.bid
-            self._total_profit = self._quantity * p + self._budget
-        elif action ==2: #sell
-            self._budget += self.bid * p * (1 - self.trade_fee_bid_percent)
-            self._quantity -= self.bid
-            self._total_profit = self._quantity * p + self._budget
+        reward = (self._long - self._short) * self._unit * (next_price - current_price)   # Quid du trade fee bid percent ?
+        
+        if terminal:
+            pass # Vraiment faire qqch ? -> peut etre penalisation inutile si l'idée du bot est de le faire vivre indefiniment 
+        
+        return reward
+
+    def _update_profit_reward(self, action, terminal = False): # Je mets dans CryptoTrading la MaJ du buget et de la quantité
+        if not terminal:
+            instant_reward = self._calculate_reward(action = action)
+            self._total_reward +=instant_reward
+            return instant_reward
+        else:                                               # l'etat est terminal, il faut en plus vendre tout ce qu'on a
+            instant_reward = self._calculate_reward(action = action)
+            self._total_reward +=instant_reward
+            return instant_reward
 
     def max_possible_profit(self):
         # la fonction est à réécrire, mais dans l'idée, c'est ça
@@ -59,12 +60,10 @@ class CryptoEnv(CryptoTradingEnv):
         # il faudrait compter en benef les moindres augmentations entre 2 temps
         start_tick = self._start_tick + self._padding_tick
         last_trade_tick = start_tick - 1
-        profit = 1.
-
+        profit = 0.
         for i in range(start_tick, self._end_tick + 1):
             for j in range(i + 1, self._end_tick + 1):
                 d = self.prices[j] / self.prices[i]
                 if d > profit:
                     profit = d
-
-        return profit * self.start_budget
+        return profit
