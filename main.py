@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_1h.csv", delimiter= ",")
 
 
-window_size = 10
-frame_len = 200
+window_size = 2
+frame_len = 3
 start_index = window_size
 end_index = len(df_btc)
 

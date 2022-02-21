@@ -34,13 +34,21 @@ class CryptoEnv(CryptoTradingEnv):
         
         if action == 1: # Buy
             self._long +=1
+            current_transaction_amount = self._unit * current_price * (1+self.trade_fee_bid_percent) 
+            self._total_profit += current_transaction_amount
         elif action == 2: #Sell
             self._short +=1
+            current_transaction_amount = - self._unit * current_price * (1+self.trade_fee_bid_percent)
+            self._total_profit += current_transaction_amount
         
         reward = (self._long - self._short) * self._unit * (next_price - current_price)   # Quid du trade fee bid percent ?
+
         
         if terminal:
-            pass # Vraiment faire qqch ? -> peut etre penalisation inutile si l'idée du bot est de le faire vivre indefiniment 
+            # etat terminal -> on revend tout au prix du marché pour avoir notre profit
+            positive_transation_amount = -self._long * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Sell everything I own
+            negative_transation_amount = self._short * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Buy everything I short
+            self._total_profit += positive_transation_amount + negative_transation_amount
         
         return reward
 
