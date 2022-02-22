@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class Actions(Enum):
-    Sell = -1
+    Sell = 2
     Stay = 0
     Buy = 1
 
@@ -72,7 +72,6 @@ class CryptoTradingEnv(gym.Env):
 
     def step(self, action):
         self._current_tick += 1
-
         if self._current_tick == self._end_tick:
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
@@ -109,11 +108,7 @@ class CryptoTradingEnv(gym.Env):
             - (short quantity, long quantity) at first argument
             - array of array : other information for each periode, one periode par row
         """
-        return self._get_local_state(self), \
-            self.signal_features[
-                int(self._current_tick-self.window_size):
-                int(self._current_tick)
-        ]
+        return np.concatenate((np.array(self._get_local_state()), self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
 
     def _update_history(self, info):
         if not self.history:
@@ -169,19 +164,18 @@ class CryptoTradingEnv(gym.Env):
 
         plt.plot(prices)
         position_history = np.array(self._position_history)
-
         buy_ind = np.array(
-            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Buy])
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Buy.value])
         buy_val = np.array([self.prices[a] for a in buy_ind])
         plt.scatter(buy_ind, buy_val, color='green')
 
         sell_ind = np.array(
-            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Sell])
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Sell.value])
         sell_val = np.array([self.prices[a] for a in sell_ind])
         plt.scatter(sell_ind, sell_val, color='red')
 
         stay_ind = np.array(
-            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Stay])
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Stay.value])
         stay_val = np.array([self.prices[a] for a in stay_ind])
         plt.scatter(stay_ind, stay_val, color='yellow')
 

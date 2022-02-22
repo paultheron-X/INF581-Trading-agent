@@ -38,7 +38,6 @@ class CryptoEnv(CryptoTradingEnv):
         print(current_price)
 
         if terminal:
-            print('salt')
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
             positive_transation_amount = self._long * self._unit * current_price * \
                 (1-self.trade_fee_bid_percent)   # Sell everything I own
@@ -49,12 +48,12 @@ class CryptoEnv(CryptoTradingEnv):
             return reward
 
         else:
-            if action == Actions.Buy:  # Buy
+            if action == Actions.Buy.value:  # Buy
                 self._long += 1
                 current_transaction_amount = -self._unit * \
                     current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
-            elif action == Actions.Sell:  # Sell
+            elif action == Actions.Sell.value:  # Sell
                 self._short += 1
                 current_transaction_amount = self._unit * \
                     current_price * (1-self.trade_fee_bid_percent)
@@ -64,7 +63,6 @@ class CryptoEnv(CryptoTradingEnv):
             fees = - self.trade_fee_bid_percent if diff < 0 else self.trade_fee_bid_percent
             reward = diff * self._unit * \
                 (next_price - current_price) * (1 + fees)
-
             return reward
 
     # Je mets dans CryptoTrading la MaJ du buget et de la quantité
