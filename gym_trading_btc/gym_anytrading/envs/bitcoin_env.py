@@ -1,7 +1,6 @@
 import numpy as np
 
-from .crypto_trading_env import CryptoTradingEnv
-from .trading_env import Actions, Positions
+from .crypto_trading_env import CryptoTradingEnv, Actions
 
 
 class CryptoEnv(CryptoTradingEnv):
@@ -9,8 +8,10 @@ class CryptoEnv(CryptoTradingEnv):
     def __init__(self, df, window_size, frame_len, start_budget=100000):
         super().__init__(df, window_size, frame_len, start_budget)
         self.trade_fee_bid_percent = 0.01  # unit
-        self._unit = 1 #units of btc
-        
+        self._unit = 1  # units of btc
+
+        self._long = 0  # positive quantity
+        self._short = 0  # Positive -> amount that you short
 
     def _process_data(self):
 
@@ -28,50 +29,56 @@ class CryptoEnv(CryptoTradingEnv):
 
         return prices, signal_features
 
-    def _calculate_reward(self, action, terminal = False):
+    def _get_local_state(self):
+        return self._short, self._long
+
+    def _calculate_reward(self, action, terminal=False):
         next_price = self.prices[int(self._current_tick+1)]
         current_price = self.prices[int(self._current_tick)]
         print(current_price)
-        
+
         if terminal:
             print('salt')
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
-            positive_transation_amount = self._long * self._unit * current_price * (1+self.trade_fee_bid_percent)   # Sell everything I own
-            negative_transation_amount = -self._short * self._unit * current_price * (1-self.trade_fee_bid_percent)   # Buy everything I short
+            positive_transation_amount = self._long * self._unit * current_price * \
+                (1-self.trade_fee_bid_percent)   # Sell everything I own
+            negative_transation_amount = -self._short * self._unit * current_price * \
+                (1+self.trade_fee_bid_percent)   # Buy everything I short
             self._total_profit += positive_transation_amount + negative_transation_amount
             reward = self._total_profit
             return reward
-        
-        else: 
-            if action == 1: # Buy
-                self._long +=1
-                current_transaction_amount = -self._unit * current_price * (1+self.trade_fee_bid_percent) 
+
+        else:
+            if action == Actions.Buy:  # Buy
+                self._long += 1
+                current_transaction_amount = -self._unit * \
+                    current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
-            elif action == 2: #Sell
-                self._short +=1
-                current_transaction_amount = self._unit * current_price * (1-self.trade_fee_bid_percent)
+            elif action == Actions.Sell:  # Sell
+                self._short += 1
+                current_transaction_amount = self._unit * \
+                    current_price * (1-self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
-            
-            reward = (self._long - self._short) * self._unit * (next_price - current_price)   # Quid du trade fee bid percent ?
-        
+
+            diff = (self._long - self._short)
+            fees = - self.trade_fee_bid_percent if diff < 0 else self.trade_fee_bid_percent
+            reward = diff * self._unit * \
+                (next_price - current_price) * (1 + fees)
+
             return reward
 
-    def _update_profit_reward(self, action, terminal = False): # Je mets dans CryptoTrading la MaJ du buget et de la quantité
-        if not terminal:
-            instant_reward = self._calculate_reward(action = action)
-            self._total_reward +=instant_reward
-            return instant_reward
-        else:                                               # l'etat est terminal, il faut en plus vendre tout ce qu'on a
-            instant_reward = self._calculate_reward(action = action, terminal= True)
-            self._total_reward +=instant_reward
-            return instant_reward
+    # Je mets dans CryptoTrading la MaJ du buget et de la quantité
+    def _update_profit_reward(self, action, terminal=False):
+        instant_reward = self._calculate_reward(
+            action=action, terminal=terminal)
+        self._total_reward += instant_reward
+        return instant_reward
 
     def max_possible_profit(self):
         # la fonction est à réécrire, mais dans l'idée, c'est ça
         # sachant qu'on ne prend pas en compte les fees :
         # il faudrait compter en benef les moindres augmentations entre 2 temps
         start_tick = self._start_tick + self._padding_tick
-        last_trade_tick = start_tick - 1
         profit = 0.
         for i in range(start_tick, self._end_tick + 1):
             for j in range(i + 1, self._end_tick + 1):
