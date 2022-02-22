@@ -100,6 +100,15 @@ class CryptoTradingEnv(gym.Env):
         return observation, step_reward, self._done, info
 
     def _get_observation(self):
+        """Return the current state :
+        - short and long quantity
+        - "open", "high", "low", "close", "Volume BTC", "Volume USD" for the last 'window-size' period
+
+        Returns:
+            tuple of 2 things :
+            - (short quantity, long quantity) at first argument
+            - array of array : other information for each periode, one periode par row
+        """
         return self._get_local_state(self), \
             self.signal_features[
                 int(self._current_tick-self.window_size):
@@ -144,69 +153,43 @@ class CryptoTradingEnv(gym.Env):
         plt.pause(0.01)
 
     def render_all(self, mode='human', window='local'):
-        if window == 'large':
-            plt.plot(self.prices)
-
-            self._position_history = np.array(self._position_history)
-
-            start = self._padding_tick
-
-            buy_ind = np.array(
-                [int(start+i) for i, a in enumerate(self._position_history) if a == Actions.Buy])
-            buy_val = np.array([self.prices[a] for a in buy_ind])
-            plt.scatter(buy_ind, buy_val, color='green')
-
-            sell_ind = np.array(
-                [int(start+i) for i, a in enumerate(self._position_history) if a == Actions.Sell])
-            sell_val = np.array([self.prices[a] for a in sell_ind])
-            plt.scatter(sell_ind, sell_val, color='red')
-
-            stay_ind = np.array(
-                [int(start+i) for i, a in enumerate(self._position_history) if a == Actions.Stay])
-            stay_val = np.array([self.prices[a] for a in stay_ind])
-            plt.scatter(stay_ind, stay_val, color='yellow')
-
-            plt.suptitle(
-                "Total Reward: %.6f" % self._total_reward + ' ~ ' +
-                "Total Portfolio: %.6f" % self._total_profit
-            )
-            plt.show()
-
-        elif window == 'local':
-
-            self.prices_reduced = np.array(
+        if window == 'local':
+            start = 0
+            prices = np.array(
                 self.prices[
                     self._padding_tick:
                     int(self._current_tick+1)
                 ]
             )
-
-            plt.plot(self.prices_reduced)
-            self._position_history = np.array(self._position_history)
-
-            buy_ind = np.array(
-                [int(i) for i, a in enumerate(self._position_history) if a == Actions.Buy])
-            buy_val = np.array([self.prices_reduced[a] for a in buy_ind])
-
-            plt.scatter(buy_ind, buy_val, color='green')
-
-            sell_ind = np.array(
-                [int(i) for i, a in enumerate(self._position_history) if a == Actions.Sell])
-            sell_val = np.array([self.prices_reduced[a] for a in sell_ind])
-            plt.scatter(sell_ind, sell_val, color='red')
-
-            stay_ind = np.array(
-                [int(i) for i, a in enumerate(self._position_history) if a == Actions.Stay])
-            stay_val = np.array([self.prices_reduced[a] for a in stay_ind])
-            plt.scatter(stay_ind, stay_val, color='yellow')
-
-            plt.suptitle(
-                "Total Reward: %.6f" % self._total_reward + ' ~ ' +
-                "Total Profit: %.6f" % self._total_profit
-            )
-            plt.show()
+        elif window == 'large':
+            start = self._padding_tick
+            prices = np.array(self.prices)
         else:
             raise NotImplementedError
+
+        plt.plot(prices)
+        position_history = np.array(self._position_history)
+
+        buy_ind = np.array(
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Buy])
+        buy_val = np.array([self.prices[a] for a in buy_ind])
+        plt.scatter(buy_ind, buy_val, color='green')
+
+        sell_ind = np.array(
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Sell])
+        sell_val = np.array([self.prices[a] for a in sell_ind])
+        plt.scatter(sell_ind, sell_val, color='red')
+
+        stay_ind = np.array(
+            [int(start+i) for i, a in enumerate(position_history) if a == Actions.Stay])
+        stay_val = np.array([self.prices[a] for a in stay_ind])
+        plt.scatter(stay_ind, stay_val, color='yellow')
+
+        plt.suptitle(
+            "Total Reward: %.6f" % self._total_reward + ' ~ ' +
+            "Total Portfolio: %.6f" % self._total_profit
+        )
+        plt.show()
 
     def close(self):
         plt.close()
