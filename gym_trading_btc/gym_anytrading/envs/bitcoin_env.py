@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.fftpack import diff
 
 from crypto_trading_env import CryptoTradingEnv, Actions
 
@@ -10,8 +11,7 @@ class CryptoEnv(CryptoTradingEnv):
         self.trade_fee_bid_percent = 0.01  # unit
         self._unit = 1  # units of btc
 
-        self._long = 0  # positive quantity
-        self._short = 0  # Positive -> amount that you short
+        self._quantity = 0  # positive quantity
 
     def _process_data(self):
 
@@ -30,7 +30,7 @@ class CryptoEnv(CryptoTradingEnv):
         return prices, signal_features
 
     def _get_local_state(self):
-        return self._short, self._long
+        return self._quantity
 
     def _calculate_reward(self, action, terminal=False):
         next_price = self.prices[int(self._current_tick+1)]
@@ -39,30 +39,29 @@ class CryptoEnv(CryptoTradingEnv):
 
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
-            positive_transation_amount = self._long * self._unit * current_price * \
-                (1-self.trade_fee_bid_percent)   # Sell everything I own
-            negative_transation_amount = -self._short * self._unit * current_price * \
-                (1+self.trade_fee_bid_percent)   # Buy everything I short
-            self._total_profit += positive_transation_amount + negative_transation_amount
+            s_fees = 1 if self._quantity < 0 else -1
+            transation_amount = self._quantity * self._unit * current_price * \
+                (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can
+            self._total_profit += transation_amount
             reward = self._total_profit
             return reward
 
         else:
             if action == Actions.Buy.value:  # Buy
-                self._long += 1
+                self._quantity += 1
                 current_transaction_amount = -self._unit * \
                     current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
             elif action == Actions.Sell.value:  # Sell
-                self._short += 1
+                self._quantity -= 1
                 current_transaction_amount = self._unit * \
                     current_price * (1-self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
 
-            diff = (self._long - self._short)
-            fees = - self.trade_fee_bid_percent if diff < 0 else self.trade_fee_bid_percent
-            reward = diff * self._unit * \
-                (next_price - current_price) * (1 + fees)
+            s_fees = - 1 if self._quantity < 0 else 1
+            reward = self._quantity * self._unit * \
+                (next_price - current_price) * \
+                (1 + s_fees * self.trade_fee_bid_percent)
             return reward
 
     # Je mets dans CryptoTrading la MaJ du buget et de la quantité
@@ -77,10 +76,14 @@ class CryptoEnv(CryptoTradingEnv):
         # sachant qu'on ne prend pas en compte les fees :
         # il faudrait compter en benef les moindres augmentations entre 2 temps
         start_tick = self._start_tick + self._padding_tick
+        end_tick = self._end_tick
+        diff_price = self.prices[start_tick + 2:end_tick + 2] - \
+            self.prices[start_tick + 1:end_tick + 1]
         profit = 0.
-        for i in range(start_tick, self._end_tick + 1):
-            for j in range(i + 1, self._end_tick + 1):
-                d = self.prices[j] / self.prices[i]
-                if d > profit:
-                    profit = d
+        quantity = 0
+        for i, d in enumerate(diff_price):
+            s_diff = -1 if d < 0 else 1
+            quantity += self._unit * s_diff
+            profit += self._unit * s_diff * self.prices[start_tick + i + 1]
+        profit += quantity * self._unit * self.prices[end_tick + 1]
         return profit

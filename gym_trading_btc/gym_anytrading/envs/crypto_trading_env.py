@@ -1,3 +1,4 @@
+from argparse import Action
 import gym
 from gym import spaces
 from gym.utils import seeding
@@ -35,7 +36,7 @@ class CryptoTradingEnv(gym.Env):
         # episode
         self._max_start_tick = len(self.prices) - self.frame_len
         self._start_tick = self.window_size
-        self._end_tick = len(self.prices) - 1
+        self._end_tick = len(self.prices) - 2
         #self._start_budget = start_budget
         self._done = None
         self._current_tick = None
@@ -121,15 +122,14 @@ class CryptoTradingEnv(gym.Env):
 
         def _plot_position(position, tick):
             color = None
-            if position < 0:
-                position *= -1
+            if position == Actions.Sell:
                 color = 'red'
-            elif position > 0:
+            elif position == Actions.Buy:
                 color = 'green'
-            elif position == 0:
+            elif position == Actions.Stay:
                 color = 'yellow'
             if color:
-                plt.bar(tick, position, color=color)
+                plt.bar(tick, 1, color=color)
 
         if self._first_rendering:
             self._first_rendering = False
