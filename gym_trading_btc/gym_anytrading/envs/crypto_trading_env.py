@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 
+from models.deepsense import *
 
 class Actions(Enum):
     Sell = 2
@@ -55,7 +56,7 @@ class CryptoTradingEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self):
+    def reset(self, history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
         self._done = False
         self._padding_tick = np.floor(np.random.rand() * self._max_start_tick)
         self._current_tick = self._start_tick + self._padding_tick
@@ -69,6 +70,11 @@ class CryptoTradingEnv(gym.Env):
         #self._budget = self._start_budget
         #self._first_rendering = True
         self.history = {}
+        
+        for state in self.signal_features[self._current_tick - self.window_size:self._current_tick]:
+            history.add(state)
+            replay_memory.add(state, 0.0, 0, False)
+
         return self._get_observation()
 
     def step(self, action):
@@ -109,8 +115,9 @@ class CryptoTradingEnv(gym.Env):
             - (short quantity, long quantity) at first argument
             - array of array : other information for each periode, one periode par row
         """
-        return np.concatenate((np.array(self._get_local_state()), self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
-
+        #return np.concatenate((np.array(self._get_local_state()), self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
+        return self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]
+    
     def _update_history(self, info):
         if not self.history:
             self.history = {key: [] for key in info.keys()}

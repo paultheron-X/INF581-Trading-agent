@@ -2,10 +2,10 @@ import os
 from os.path import join
 import tensorflow as tf
 
-from config.constants import *
-from config.strings import *
+from config import *
 
-from deepsense_params import DeepSenseParams
+
+from .deepsense_params import DeepSenseParams
 
 """ Code adapted from XXX git repo, with /// paper """
 class DeepSense:
@@ -101,8 +101,9 @@ class DeepSense:
                     )        
 
     def build_model(self, state, reuse=False):
-        inputs = state[0]
-        trade_rem = state[1]
+        inputs = state
+        #inputs = state[0]
+        #trade_rem = state[1]
         with tf.variable_scope(self.__name__, reuse=reuse):
             with tf.name_scope(PHASE):
                 self.phase = tf.placeholder(dtype=tf.bool)
@@ -183,8 +184,8 @@ class DeepSense:
             Append the information regarding the number of trades left in the episode
             '''
             
-            trade_rem = tf.expand_dims(trade_rem, axis=1)
-            output = tf.concat([output, trade_rem], axis=1)
+            #trade_rem = tf.expand_dims(trade_rem, axis=1)
+            #output = tf.concat([output, trade_rem], axis=1)
 
             with tf.variable_scope(FULLY_CONNECTED, reuse=reuse):
                 num_dense_layers = len(self.params.dense_layer_sizes)

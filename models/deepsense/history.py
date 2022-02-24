@@ -10,8 +10,7 @@ class History:
     def __init__(self, logger, config):
         self.logger = logger
 
-        batch_size, history_length, self.num_channels = \
-            config[BATCH_SIZE], config[HISTORY_LENGTH], config[NUM_CHANNELS]
+        batch_size, history_length, self.num_channels = config[BATCH_SIZE], config[HISTORY_LENGTH], config[NUM_CHANNELS]
 
         self.dims = (self.num_channels,)
         self._history = np.zeros(

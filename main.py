@@ -4,7 +4,7 @@ import gym_trading_btc.gym_anytrading as gym_anytrading
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from models.deepsense import *
+#from models.deepsense import *
 
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_1h.csv", delimiter= ",")
 
@@ -20,6 +20,7 @@ observation = env.reset()
 
 while True:
     observation = observation[np.newaxis, ...]
+    print(observation)
 
     action = env.action_space.sample()
     observation, reward, done, info = env.step(action)

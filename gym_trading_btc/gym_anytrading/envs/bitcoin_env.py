@@ -26,6 +26,7 @@ class CryptoEnv(CryptoTradingEnv):
 
         diff = np.insert(np.diff(prices), 0, 0)
         signal_features = np.c_[features, diff]
+        print(signal_features)
 
         return prices, signal_features
 
@@ -52,6 +53,7 @@ class CryptoEnv(CryptoTradingEnv):
                 current_transaction_amount = -self._unit * \
                     current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
+            
             elif action == Actions.Sell.value:  # Sell
                 self._quantity -= 1
                 current_transaction_amount = self._unit * \

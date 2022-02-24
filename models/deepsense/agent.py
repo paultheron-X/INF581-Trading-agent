@@ -7,6 +7,8 @@ import random
 from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
+import pandas as pd
+
 
 from .baseagent import BaseAgent
 
@@ -19,6 +21,16 @@ from .history import History
 from .replay_memory import ReplayMemory
 
 from config import *
+
+
+df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_2017-2022_minute.csv", delimiter= ",")
+
+window_size = 2
+frame_len = 6
+start_index = window_size
+end_index = len(df_btc)
+
+env = CryptoEnv(df = df_btc , window_size=window_size, frame_len = frame_len)
                         
 class Agent(BaseAgent):
     '''Deep Trading Agent based on Deep Q Learning'''
@@ -26,7 +38,7 @@ class Agent(BaseAgent):
         1. add `play` function to run tests in the simulated environment
     '''
 
-    def __init__(self, sess, logger, config, env):
+    def __init__(self, sess, logger, config, env = env):
         super(Agent, self).__init__(config, logger)
         self.sess = sess
         self.logger = logger
@@ -56,7 +68,7 @@ class Agent(BaseAgent):
         max_avg_ep_reward = 0
         ep_rewards, actions = [], []
 
-        trade_rem = self.env.new_random_episode(self.history, self.replay_memory)
+        self.env.reset(self.history, self.replay_memory)
 
         for self.step in tqdm(range(start_step, self.max_step), ncols=70, initial=start_step):
             if self.step == self.learn_start:
@@ -65,14 +77,14 @@ class Agent(BaseAgent):
                 ep_rewards, actions = [], []
 
             # 1. predict
-            action = self.predict((self.history.history, trade_rem))
+            action = self.predict(self.history.history)
             # 2. act
-            screen, reward, terminal, trade_rem = self.env.act(action)
+            screen, reward, terminal, info = self.env.step(action)
             # 3. observe
-            self.observe(screen, reward, action, terminal, trade_rem)
+            self.observe(screen, reward, action, terminal) #, trade_rem)
 
             if terminal:
-                self.env.new_random_episode(self.history, self.replay_memory)
+                self.env.reset(self.history, self.replay_memory)
                 num_episodes += 1
                 ep_rewards.append(ep_reward)
                 ep_reward = 0.
@@ -136,8 +148,8 @@ class Agent(BaseAgent):
                     actions = []
     
     def predict(self, state, test_ep=None):
-        s_t = state[0]
-        trade_rem_t = state[1]
+        s_t = state
+        #trade_rem_t = state[1]
         ep = test_ep or (self.ep_end +
             max(0., (self.ep_start - self.ep_end) \
             * (self.ep_end_t - max(0., self.step - self.learn_start)) / self.ep_end_t))
@@ -150,7 +162,7 @@ class Agent(BaseAgent):
                 feed_dict={
                     self.q.phase: 0,  
                     self.s_t: [s_t], 
-                    self.trade_rem_t: [trade_rem_t],
+                    #self.trade_rem_t: [trade_rem_t],
                     self.q_conv_keep_prob: 1.0,
                     self.q_dense_keep_prob: 1.0,
                     self.q_gru_keep_prob: 1.0
@@ -159,12 +171,12 @@ class Agent(BaseAgent):
 
         return action
 
-    def observe(self, screen, reward, action, terminal, trade_rem):
+    def observe(self, screen, reward, action, terminal): #, trade_rem):
         #clip reward in the range min to max
         reward = max(self.min_reward, min(self.max_reward, reward))
         
         self.history.add(screen)
-        self.replay_memory.add(screen, reward, action, terminal, trade_rem)
+        self.replay_memory.add(screen, reward, action, terminal) #, trade_rem)
 
         if self.step > self.learn_start:
             if self.step % self.train_frequency == 0:
@@ -176,15 +188,15 @@ class Agent(BaseAgent):
     def q_learning_mini_batch(self):         
         if self.replay_memory.count >= self.replay_memory.history_length:
             state_t, action, reward, state_t_plus_1, terminal = self.replay_memory.sample
-            s_t, trade_rem_t = state_t[0], state_t[1]
-            s_t_plus_1, trade_rem_t_plus_1 = state_t_plus_1[0], state_t_plus_1[1]
+            s_t = state_t  #, trade_rem_t = state_t[0], state_t[1]
+            s_t_plus_1 = state_t_plus_1 #, trade_rem_t_plus_1 = state_t_plus_1[0], state_t_plus_1[1]
             
             q_t_plus_1 = self.sess.run(
                 fetches=self.t_q.values,
                 feed_dict={
                     self.t_q.phase: 0, 
                     self.t_s_t: s_t_plus_1, 
-                    self.t_trade_rem_t: trade_rem_t_plus_1
+                    #self.t_trade_rem_t: trade_rem_t_plus_1
                 }
             )
 
@@ -198,7 +210,7 @@ class Agent(BaseAgent):
                 self.target_q: target_q,
                 self.action: action,
                 self.s_t: s_t,
-                self.trade_rem_t: trade_rem_t,
+                #self.trade_rem_t: trade_rem_t,
                 self.q_conv_keep_prob: self.config[CONV_KEEP_PROB],
                 self.q_dense_keep_prob: self.config[DENSE_KEEP_PROB],
                 self.q_gru_keep_prob: self.config[GRU_KEEP_PROB],
@@ -218,11 +230,11 @@ class Agent(BaseAgent):
                             self.replay_memory.num_channels],
                 name=HISTORICAL_PRICES
             )
-            self.trade_rem_t = tf.placeholder(
+            """self.trade_rem_t = tf.placeholder(
                 dtype=tf.float32,
                 shape=[None,],
                 name=TRADE_REM
-            )
+            )"""
             
             with tf.variable_scope(DROPOUT_KEEP_PROBS):
                 self.q_conv_keep_prob = tf.placeholder(tf.float32)
@@ -239,7 +251,7 @@ class Agent(BaseAgent):
         
         # First deep q learning
         self.q = DeepSense(params, self.logger, self.sess, self.config, name=Q_NETWORK)
-        self.q.build_model((self.s_t, self.trade_rem_t))
+        self.q.build_model(self.s_t) #, self.trade_rem_t))
 
         with tf.variable_scope(TARGET):
             self.t_s_t = tf.placeholder(
@@ -257,7 +269,7 @@ class Agent(BaseAgent):
         # Second, target model
         params.dropoutkeepprobs = DropoutKeepProbs()
         self.t_q = DeepSense(params, self.logger, self.sess, self.config, name=T_Q_NETWORK)
-        self.t_q.build_model((self.t_s_t, self.t_trade_rem_t))
+        self.t_q.build_model(self.t_s_t) #, self.t_trade_rem_t))
 
         with tf.variable_scope(UPDATE_TARGET_NETWORK):
             self.q_weights_placeholders = {}
