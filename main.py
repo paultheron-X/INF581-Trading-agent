@@ -1,6 +1,7 @@
 import gym 
 from gym_trading_btc.gym_anytrading.envs.bitcoin_env import *
 import gym_trading_btc.gym_anytrading as gym_anytrading
+from gym_trading_btc.gym_anytrading.solvers.qLearning import *
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -16,13 +17,15 @@ end_index = len(df_btc)
 
 env = CryptoEnv(df = df_btc , window_size=window_size, frame_len= frame_len)
 
+solver = qLearning(env.action_space)
+
 observation = env.reset()
 
 while True:
     observation = observation[np.newaxis, ...]
-    print(observation)
 
     action = env.action_space.sample()
+    # action = solver(observation)
     observation, reward, done, info = env.step(action)
     
     

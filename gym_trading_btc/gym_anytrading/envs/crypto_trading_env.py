@@ -34,6 +34,7 @@ class CryptoTradingEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float32)
 
+
         # episode
         self._max_start_tick = len(self.prices) - self.frame_len
         self._start_tick = self.window_size
@@ -52,13 +53,14 @@ class CryptoTradingEnv(gym.Env):
         #self._first_rendering = None
         self.history = None
 
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def reset(self, history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
         self._done = False
-        self._padding_tick = np.floor(np.random.rand() * self._max_start_tick)
+        self._padding_tick = int(np.floor(np.random.rand() * self._max_start_tick))
         self._current_tick = self._start_tick + self._padding_tick
         self._end_tick = self._current_tick + self.frame_len
         #self._last_trade_tick = self._current_tick - 1

@@ -13,7 +13,7 @@ class CryptoEnv(CryptoTradingEnv):
 
         self._quantity = 0  # positive quantity
 
-    def _process_data(self):
+    def _process_data(self, verbose=False):
 
         prices = self.df.loc[:, 'close'].to_numpy()
         features = self.df.loc[:,
@@ -26,7 +26,11 @@ class CryptoEnv(CryptoTradingEnv):
 
         diff = np.insert(np.diff(prices), 0, 0)
         signal_features = np.c_[features, diff]
-        print(signal_features)
+        
+        if verbose:
+            print(f"Signal rows : {len(signal_features)}")
+            print(f"Signal columns : {len(signal_features[0])}")
+            print(signal_features,end='\n\n')
 
         return prices, signal_features
 
@@ -36,7 +40,7 @@ class CryptoEnv(CryptoTradingEnv):
     def _calculate_reward(self, action, terminal=False):
         next_price = self.prices[int(self._current_tick+1)]
         current_price = self.prices[int(self._current_tick)]
-        print(current_price)
+        print(f"Current price : {current_price} USD")
 
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
