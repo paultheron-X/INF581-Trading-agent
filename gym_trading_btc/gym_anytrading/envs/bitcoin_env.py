@@ -39,7 +39,7 @@ class CryptoEnv(CryptoTradingEnv):
     def _calculate_reward(self, action, terminal=False):
         next_price = self.prices[int(self._current_tick+1)]
         current_price = self.prices[int(self._current_tick)]
-        print(f"Current price : {current_price} USD")
+        #print(f"Current price : {current_price} USD")
 
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit

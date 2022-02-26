@@ -8,7 +8,6 @@ from enum import Enum
 
 from config import *
 
-from models.deepsense.past import *
 class Actions(Enum):
     Sell = 2
     Stay = 0
@@ -59,7 +58,7 @@ class CryptoTradingEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self, history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
+    def reset(self): #, history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
         self._done = False
         self._padding_tick = int(np.floor(np.random.rand() * self._max_start_tick))
         self._current_tick = self._start_tick + self._padding_tick
@@ -74,9 +73,9 @@ class CryptoTradingEnv(gym.Env):
         #self._first_rendering = True
         self.history = {}
         
-        for state in self.signal_features[self._current_tick - self.window_size:self._current_tick]:
+        """for state in self.signal_features[self._current_tick - self.window_size:self._current_tick]:
             history.add(state)
-            replay_memory.add(state, 0.0, 0, False)
+            replay_memory.add(state, 0.0, 0, False)"""
 
         return self._get_observation()
 
@@ -87,13 +86,13 @@ class CryptoTradingEnv(gym.Env):
             # Il faut tout revendre pour tomber à zero action short ou possédée
             step_reward = self._update_profit_reward(
                 action=action, terminal=True)
-            print(" > For this last step, Action :  " + str(action) + " | Reward : " +
-                  str(step_reward) + " | Total profit " + str(self._total_profit))
+            #print(" > For this last step, Action :  " + str(action) + " | Reward : " +
+             #     str(step_reward) + " | Total profit " + str(self._total_profit))
         else:
             self._done = False
             step_reward = self._update_profit_reward(action)
-            print("     > For this step, Action :  " + str(action) + " | Reward : " +
-                  str(step_reward) + " | Total profit " + str(self._total_profit))
+           # print("     > For this step, Action :  " + str(action) + " | Reward : " +
+            #      str(step_reward) + " | Total profit " + str(self._total_profit))
 
         self._last_reward = step_reward
         self._position_history.append(action)
@@ -119,7 +118,7 @@ class CryptoTradingEnv(gym.Env):
             - array of array : other information for each periode, one periode par row
         """
         #return np.concatenate((np.array(self._get_local_state()), self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
-        return self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]
+        return np.ravel(self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)])
     
     def _update_history(self, info):
         if not self.history:
