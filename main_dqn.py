@@ -1,11 +1,13 @@
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 
-from models.dqn import *
+from models.dqn import DQNAgent_ds
 
-from config_mods import config
+from config_mods import config_dqn_deepsense as config
 
-agent = DQNAgent()
+
+agent = DQNAgent_ds()
 
 # Animation Loop
 game_reward = []
@@ -17,7 +19,6 @@ num_episode = config['num_episode']
 
 while counter < num_episode:
     
-    counter = 0
     state, terminal = agent.reset()
     current_reward = 0
     issue = state.copy()
@@ -33,11 +34,12 @@ while counter < num_episode:
         
         agent.remember(old_state, action_chosen, reward, issue, terminal)
         
-        
         agent.trading_lessons()
 
         current_reward += reward
         t2 = time.time()
+    
+    counter +=1
     game_reward.append(current_reward)
     ind = len(game_reward)
     if ind % config['replace_target'] == 0 and ind > config['replace_target']:
@@ -46,3 +48,5 @@ while counter < num_episode:
         avg = np.mean(game_reward[max(ind-100, 0):ind])
         print("> Game Numer : " + str(ind) + " | Last Game Reward = " + str(current_reward) + " | Average R on 100 last games : " + str(avg) + " | Exploration rate : " + str(agent.get_exploration()) + " | Current FPS : " + str(round(1/(t2-t1))))
 
+#plt.plot(game_reward)
+#plt.show()

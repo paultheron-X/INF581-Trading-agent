@@ -1,4 +1,5 @@
 import os, sys
+from re import X
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
@@ -13,11 +14,12 @@ import pandas as pd
 
 from gym_trading_btc.gym_anytrading.envs import *
 
-from config_mods import config_dqn_base as config 
+from config_mods import config_dqn_deepsense as config 
+
 from .replay_memory import Memory
 
 class DQNSolver(nn.Module):
-    def __init__(self, input_size, n_actions, dropout, hidden_size) -> None:
+    def __init__(self, input_size, n_actions, dropout, hidden_size, filter_size, kernel_size, dropout_conv) -> None:
         super(DQNSolver, self).__init__()
         self.fc = nn.Sequential()
         self.fc.add_module('input', nn.Linear(input_size, hidden_size[0] ))
@@ -33,10 +35,15 @@ class DQNSolver(nn.Module):
         self.fc.add_module('softmax', nn.Softmax())
         
     def forward(self, x):
-
+        print(x)
+        print(x.shape)
+        y = torch.reshape(x, (3, 2, 2, 7 ))
+        print(y.shape)
+        print(y)
+        quit()
         return self.fc(x)
 
-class DQNAgent: 
+class DQNAgent_ds: 
     def __init__(self,  window_size =  config['window_size'],
                         num_features = config['num_features'],
                         action_space = config['num_actions'], 
@@ -50,7 +57,10 @@ class DQNAgent:
                         exploration_min = config['exploration_min'], 
                         batch_size = config['batch_size'],
                         frame_len = config['frame_len'],
-                        dataset_path = config['df_path']
+                        dataset_path = config['df_path'],
+                        filter_size = config['filter_sizes'],
+                        kernel_size = config['kernel_sizes'],
+                        dropout_conv = config['dropout_conv']
                         ) -> None:
          
          
@@ -62,14 +72,20 @@ class DQNAgent:
                             input_size =self.state_space, 
                             n_actions=action_space,
                             dropout=dropout,
-                            hidden_size=hidden_size
+                            hidden_size=hidden_size, 
+                            filter_size = filter_size,
+                            kernel_size = kernel_size,
+                            dropout_conv = dropout_conv
                             ).to(self.device)
          
          self.dqn_target = DQNSolver(
                             input_size =self.state_space, 
                             n_actions=action_space,
                             dropout=dropout,
-                            hidden_size=hidden_size
+                            hidden_size=hidden_size, 
+                            filter_size = filter_size,
+                            kernel_size = kernel_size,
+                            dropout_conv = dropout_conv
                             ).to(self.device)
          
          self.lr = lr
@@ -117,6 +133,7 @@ class DQNAgent:
             #print("Prediction for this step", action)
             #print("Target for this step", action)
             #print("Current for this step", action)
+    
     def get_observation(self):
         return self.env._get_observation()
     

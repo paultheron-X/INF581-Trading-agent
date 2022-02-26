@@ -1,6 +1,7 @@
 from configparser import ConfigParser
 from os.path import join
 import os, sys
+import json
 
 
 def get_config_parser(filename = 'dqn_base.cfg'):
@@ -19,20 +20,30 @@ def get_config(config_parser):
     config['frame_len'] = int(config_parser.get('agent', 'FRAME_LEN'))
     config['num_episode'] = int(config_parser.get('agent', 'NUM_EPISODE'))
     
+    config['max_mem_size'] = int(config_parser.get('agent', 'MAX_MEM_SIZE'))
+    
+    config['exploration_rate'] = float(config_parser.get('agent', 'EXPLORATION_RATE'))
+    config['exploration_decay'] = float(config_parser.get('agent', 'EXPLORATION_DECAY'))
+    config['exploration_min'] = float(config_parser.get('agent', 'EXPLORATION_MIN'))
+
+    
     config['batch_size'] = int(config_parser.get('dqn', 'BATCH_SIZE'))
     config['replace_target'] = int(config_parser.get('dqn', 'REPLACE_TARGET'))
     
-    config['dropout'] = float(config_parser.get('dqn', 'DROPOUT'))
     config['lr'] = float(config_parser.get('dqn', 'LR'))
     config['gamma'] = float(config_parser.get('dqn', 'GAMMA'))
-    config['hidden_size'] = int(config_parser.get('dqn', 'HIDDEN_SIZE')) #json.loads
+    config['hidden_size'] = json.loads(config_parser.get('dqn', 'HIDDEN_SIZE')) 
     
-    config['max_mem_size'] = int(config_parser.get('dqn', 'MAX_MEM_SIZE'))
+    config['dropout_linear'] = float(config_parser.get('dropout', 'LINEAR_DROPOUT'))
+    config['dropout_conv'] = float(config_parser.get('dropout', 'CONV_DROPOUT'))
+    config['dropout_gru'] = float(config_parser.get('dropout', 'GRU_DROPOUT'))
+
+    config['filter_sizes'] = json.loads(config_parser.get('convolution', 'FILTER_SIZES'))
+    config['kernel_sizes'] = json.loads(config_parser.get('convolution', 'KERNEL_SIZES'))
+    config['padding'] = (config_parser.get('convolution', 'PADDING'))
     
-    config['exploration_rate'] = float(config_parser.get('dqn', 'EXPLORATION_RATE'))
-    config['exploration_decay'] = float(config_parser.get('dqn', 'EXPLORATION_DECAY'))
-    config['exploration_min'] = float(config_parser.get('dqn', 'EXPLORATION_MIN'))
-    
+    config['gru_cell_size'] = int(config_parser.get('gru', 'GRU_CELL_SIZE'))
+    config['gru_num_cell'] = int(config_parser.get('gru', 'GRU_NUM_CELLS'))
+
     config['training_state'] = int(config_parser.get('print', 'TRAINING_STATE'))
-    
     return config

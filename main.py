@@ -1,7 +1,6 @@
 import gym 
 from gym_trading_btc.gym_anytrading.envs.bitcoin_env import *
 import gym_trading_btc.gym_anytrading as gym_anytrading
-from gym_trading_btc.gym_anytrading.solvers.qLearning import *
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -20,6 +19,7 @@ env = CryptoEnv(df = df_btc , window_size=window_size, frame_len= frame_len)
 observation = env.reset()
 
 while True:
+    print(observation)
     observation = observation[np.newaxis, ...]
 
     action = env.action_space.sample()

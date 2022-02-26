@@ -12,4 +12,7 @@ Method:
 """
 
 config_p = get_config_parser('dqn_base.cfg')
-config = get_config(config_p)
+config_dqn_base = get_config(config_p)
+
+config_p = get_config_parser('dqn_deepsense.cfg')
+config_dqn_deepsense = get_config(config_p)
