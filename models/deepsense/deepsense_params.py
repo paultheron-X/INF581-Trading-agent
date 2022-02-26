@@ -36,3 +36,7 @@ class DeepSenseParams:
     @property
     def dropoutkeepprobs(self):
         return self._dropoutkeeprobs
+    
+    @dropoutkeepprobs.setter
+    def dropoutkeepprobs(self, value):
+        self._dropoutkeeprobs = value

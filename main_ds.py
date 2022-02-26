@@ -2,28 +2,23 @@ import time
 from os.path import join
 
 import tensorflow as tf
-import numpy as np
-from argparse import ArgumentParser
 
 from config import *
 
-from process.processor import Processor
+from models.deepsense import *
 
-from model.agent import Agent
-from model.environment import Environment
+df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_2017-2022_minute.csv", delimiter= ",")
 
-from utils.config import get_config
-from utils.constants import *
-from utils.strings import *
-from utils.util import *
+window_size = 2
+frame_len = 6
+start_index = window_size
+end_index = len(df_btc)
 
-config_parser = get_config_parser(config_file_path)
-config = get_config(config_parser)
-logger = get_logger(config)
-with tf.Session() as sess:
-    processor = Processor(config, logger)
-    env = Environment(logger, config, processor.diff_blocks, processor.price_blocks, processor.timestamp_blocks)
+env = CryptoEnv(df = df_btc , window_size=window_size, frame_len = frame_len)
+
+with tf.compat.v1.Session() as sess:
     agent = Agent(sess, logger, config, env)
+    print('init')
     agent.train()
     agent.summary_writer.close()
 

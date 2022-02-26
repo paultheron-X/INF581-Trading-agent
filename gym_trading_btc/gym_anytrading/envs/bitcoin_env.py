@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.fftpack import diff
 
 from .crypto_trading_env import CryptoTradingEnv, Actions
 

@@ -6,8 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 
-from models.deepsense import *
+from config import *
 
+from models.deepsense.past import *
 class Actions(Enum):
     Sell = 2
     Stay = 0

@@ -17,8 +17,7 @@ from .deepsense_params import DeepSenseParams, DropoutKeepProbs
 
 from gym_trading_btc.gym_anytrading.envs import CryptoEnv
 
-from .history import History
-from .replay_memory import ReplayMemory
+from .past import *
 
 from config import *
 
@@ -43,18 +42,18 @@ class Agent(BaseAgent):
         self.sess = sess
         self.logger = logger
         self.config = config
-        params = DeepSenseParams(config)
+        params_ = DeepSenseParams(config)
 
         self.env = env
         self.history = History(logger, config)
         self.replay_memory = ReplayMemory(logger, config)
 
-        with tf.variable_scope(STEPS):
+        with tf.compat.v1.variable_scope(STEPS):
             self.step_op = tf.Variable(0, trainable=False, name=STEP)
-            self.step_input = tf.placeholder('int32', None, name=STEP_INPUT)
+            self.step_input = tf.compat.v1.placeholder('int32', None, name=STEP_INPUT)
             self.step_assign_op = self.step_op.assign(self.step_input)
 
-        self.build_dqn(params)
+        self.build_dqn(params_)
 
     @property
     def summary_writer(self):
@@ -150,9 +149,7 @@ class Agent(BaseAgent):
     def predict(self, state, test_ep=None):
         s_t = state
         #trade_rem_t = state[1]
-        ep = test_ep or (self.ep_end +
-            max(0., (self.ep_start - self.ep_end) \
-            * (self.ep_end_t - max(0., self.step - self.learn_start)) / self.ep_end_t))
+        ep = test_ep or (self.ep_end + max(0., (self.ep_start - self.ep_end) * (self.ep_end_t - max(0., self.step - self.learn_start)) / self.ep_end_t))
 
         if random.random() < ep:
             action = random.randrange(self.config[NUM_ACTIONS])
@@ -222,26 +219,26 @@ class Agent(BaseAgent):
             self.total_q += q_t.mean()
             self.update_count += 1
 
-    def build_dqn(self, params):
-        with tf.variable_scope(PREDICTION):
-            self.s_t = tf.placeholder(
+    def build_dqn(self, params_):
+        with tf.compat.v1.variable_scope(PREDICTION):
+            self.s_t = tf.compat.v1.placeholder(
                 dtype=tf.float32,
                 shape=[None, self.replay_memory.history_length, 
                             self.replay_memory.num_channels],
                 name=HISTORICAL_PRICES
             )
-            """self.trade_rem_t = tf.placeholder(
+            """self.trade_rem_t = tf.compat.v1.placeholder(
                 dtype=tf.float32,
                 shape=[None,],
                 name=TRADE_REM
             )"""
             
-            with tf.variable_scope(DROPOUT_KEEP_PROBS):
-                self.q_conv_keep_prob = tf.placeholder(tf.float32)
-                self.q_dense_keep_prob = tf.placeholder(tf.float32)
-                self.q_gru_keep_prob = tf.placeholder(tf.float32)
+            with tf.compat.v1.variable_scope(DROPOUT_KEEP_PROBS):
+                self.q_conv_keep_prob = tf.compat.v1.placeholder(tf.float32)
+                self.q_dense_keep_prob = tf.compat.v1.placeholder(tf.float32)
+                self.q_gru_keep_prob = tf.compat.v1.placeholder(tf.float32)
 
-        params.dropoutkeepprobs = DropoutKeepProbs(
+        params_.dropoutkeepprobs = DropoutKeepProbs(
                     self.q_conv_keep_prob,
                     self.q_dense_keep_prob,
                     self.q_gru_keep_prob
@@ -250,33 +247,33 @@ class Agent(BaseAgent):
         # >> Double deep q learning model
         
         # First deep q learning
-        self.q = DeepSense(params, self.logger, self.sess, self.config, name=Q_NETWORK)
+        self.q = DeepSense(deepsenseparams = params_, logger = self.logger, sess =  self.sess, config = self.config, name=Q_NETWORK)
         self.q.build_model(self.s_t) #, self.trade_rem_t))
 
-        with tf.variable_scope(TARGET):
-            self.t_s_t = tf.placeholder(
+        with tf.compat.v1.variable_scope(TARGET):
+            self.t_s_t = tf.compat.v1.placeholder(
                 dtype=tf.float32,
                 shape=[None, self.replay_memory.history_length, 
                             self.replay_memory.num_channels],
                 name=HISTORICAL_PRICES
             )
-            self.t_trade_rem_t = tf.placeholder(
+            self.t_trade_rem_t = tf.compat.v1.placeholder(
                 dtype=tf.float32,
                 shape=[None,],
                 name=TRADE_REM
             )
         
         # Second, target model
-        params.dropoutkeepprobs = DropoutKeepProbs()
-        self.t_q = DeepSense(params, self.logger, self.sess, self.config, name=T_Q_NETWORK)
+        params_.dropoutkeepprobs = DropoutKeepProbs()
+        self.t_q = DeepSense(params_, self.logger, self.sess, self.config, name=T_Q_NETWORK)
         self.t_q.build_model(self.t_s_t) #, self.t_trade_rem_t))
 
-        with tf.variable_scope(UPDATE_TARGET_NETWORK):
+        with tf.compat.v1.variable_scope(UPDATE_TARGET_NETWORK):
             self.q_weights_placeholders = {}
             self.t_weights_assign_ops = {}
 
             for name in self.q.weights.keys():
-                self.q_weights_placeholders[name] = tf.placeholder(
+                self.q_weights_placeholders[name] = tf.compat.v1.placeholder(
                             tf.float32,
                             self.q.weights[name].get_shape().as_list()
                         )
@@ -285,36 +282,36 @@ class Agent(BaseAgent):
                     self.q_weights_placeholders[name]
                 )
 
-        with tf.variable_scope(TRAINING):
-            self.target_q = tf.placeholder(tf.float32, [None], name=TARGET_Q)
-            self.action = tf.placeholder(tf.int64, [None], name=ACTION)
+        with tf.compat.v1.variable_scope(TRAINING):
+            self.target_q = tf.compat.v1.placeholder(tf.float32, [None], name=TARGET_Q)
+            self.action = tf.compat.v1.placeholder(tf.int64, [None], name=ACTION)
             
-            action_one_hot = tf.one_hot(self.action, self.config[NUM_ACTIONS], 
+            action_one_hot = tf.compat.v1.one_hot(self.action, self.config[NUM_ACTIONS], 
                                             1.0, 0.0, name=ACTION_ONE_HOT)
-            q_acted = tf.reduce_sum(self.q.values * action_one_hot, 
+            q_acted = tf.compat.v1.reduce_sum(self.q.values * action_one_hot, 
                                         reduction_indices=1, name=Q_ACTED)
                                         
-            with tf.variable_scope(LOSS):
+            with tf.compat.v1.variable_scope(LOSS):
                 self.delta = self.target_q - q_acted
 
                 self.global_step = tf.Variable(0, trainable=False)
 
                 self.loss = tf.reduce_mean(clipped_error(self.delta), name=LOSS)
 
-            with tf.variable_scope(OPTIMIZER):
-                self.learning_rate_step = tf.placeholder(tf.int64, None, name=LEARNING_RATE_STEP)
+            with tf.compat.v1.variable_scope(OPTIMIZER):
+                self.learning_rate_step = tf.compat.v1.placeholder(tf.int64, None, name=LEARNING_RATE_STEP)
                 self.learning_rate_op = tf.maximum(self.learning_rate_minimum,
-                    tf.train.exponential_decay(
+                    tf.compat.v1.train.exponential_decay(
                         self.learning_rate,
                         self.learning_rate_step,
                         self.learning_rate_decay_step,
                         self.learning_rate_decay,
                         staircase=True))
 
-                self.optimizer = tf.train.RMSPropOptimizer(
+                self.optimizer = tf.compat.v1.train.RMSPropOptimizer(
                     self.learning_rate_op, momentum=0.95, epsilon=0.01).minimize(self.loss)
 
-        with tf.variable_scope(SUMMARY):
+        with tf.compat.v1.variable_scope(SUMMARY):
             scalar_summary_tags = ['average.reward', 'average.loss', 'average.q', \
                 'episode.max reward', 'episode.min reward', 'episode.avg reward', \
                 'episode.num of episodes', 'training.learning_rate']            
@@ -324,9 +321,9 @@ class Agent(BaseAgent):
 
             for tag in scalar_summary_tags:
                 self.summary_placeholders[tag] = \
-                    tf.placeholder('float32', None, name=tag.replace(' ', '_'))
+                    tf.compat.v1.placeholder('float32', None, name=tag.replace(' ', '_'))
                 self.summary_ops[tag] = \
-                    tf.summary.scalar(
+                    tf.compat.v1.summary.scalar(
                         name="{}-{}".format(self.env_name, tag.replace(' ', '_')),
                         tensor=self.summary_placeholders[tag]
                     )
@@ -334,21 +331,21 @@ class Agent(BaseAgent):
             histogram_summary_tags = ['episode.rewards', 'episode.actions']
             for tag in histogram_summary_tags:
                 self.summary_placeholders[tag] = \
-                    tf.placeholder('float32', None, name=tag)
+                    tf.compat.v1.placeholder('float32', None, name=tag)
                 self.summary_ops[tag] = \
-                    tf.summary.histogram(
+                    tf.compat.v1.summary.histogram(
                         tag,
                         self.summary_placeholders[tag]
                     )
 
-        self.sess.run(tf.local_variables_initializer())
-        self.sess.run(tf.global_variables_initializer())
-        self._saver = tf.train.Saver(self.q.weights.values() + [self.step_op], max_to_keep=30)
+        self.sess.run(tf.compat.v1.local_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
+        self._saver = tf.compat.v1.train.Saver(self.q.weights.values() + self.step_op, max_to_keep=30)
         
         self.load_model()
         self.update_target_network()
 
-        self._summary_writer = tf.summary.FileWriter(self.config[TENSORBOARD_LOG_DIR])
+        self._summary_writer = tf.compat.v1.summary.FileWriter(self.config[TENSORBOARD_LOG_DIR])
         self._summary_writer.add_graph(self.sess.graph)
 
     def update_target_network(self):
@@ -372,6 +369,6 @@ class Agent(BaseAgent):
 def clipped_error(x):
     # Huber loss
     try:
-        return tf.select(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
+        return tf.compat.v1.select(tf.compat.v1.abs(x) < 1.0, 0.5 * tf.compat.v1.square(x), tf.compat.v1.abs(x) - 0.5)
     except:
-        return tf.where(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
+        return tf.compat.v1.where(tf.compat.v1.abs(x) < 1.0, 0.5 * tf.compat.v1.square(x), tf.compat.v1.abs(x) - 0.5)

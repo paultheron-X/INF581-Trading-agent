@@ -138,3 +138,5 @@ venv*/
 dist/
 *.egg-info/
 build/
+
+.DS_Store

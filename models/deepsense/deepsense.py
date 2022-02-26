@@ -2,6 +2,7 @@ import os
 from os.path import join
 import tensorflow as tf
 
+
 from config import *
 
 
@@ -11,8 +12,8 @@ from .deepsense_params import DeepSenseParams
 class DeepSense:
     '''DeepSense Architecture for Q function approximation over Timeseries'''
 
-    def __init__(self, deepsenseparams, logger, sess, config, name=DEEPSENSE):
-        self.params = deepsenseparams
+    def __init__(self, deepsenseparams = None, logger = None, sess = None, config = None, name=DEEPSENSE):
+        self._params = deepsenseparams
         self.logger = logger
         self.sess = sess
         self.__name__ = name
@@ -29,7 +30,11 @@ class DeepSense:
 
     @property
     def params(self):
-        return self.params
+        return self._params
+    
+    @params.setter
+    def params(self, value):
+        self._params = value
 
     @property
     def name(self):
@@ -43,7 +48,7 @@ class DeepSense:
     def weights(self):
         if self._weights is None:
             self._weights = {}
-            variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 
+            variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, 
                                             scope=self.__name__)
             for variable in variables:
                 name = "/".join(variable.name.split('/')[1:])
@@ -52,7 +57,7 @@ class DeepSense:
 
     '''
     def batch_norm_layer(self, inputs, train, name, reuse):
-        return tf.layers.batch_normalization(
+        return tf.compat.v1.layers.batch_normalization(
                                 inputs=inputs,
                                 training=train,
                                 name=name,
@@ -61,7 +66,7 @@ class DeepSense:
     '''
 
     def conv2d_layer(self, inputs, filter_size, kernel_size, padding, name, reuse, activation=None):
-        return tf.layers.conv2d(
+        return tf.compat.v1.layers.conv2d(
                         inputs=inputs,
                         filters=filter_size,
                         kernel_size=[1, kernel_size],
@@ -73,7 +78,7 @@ class DeepSense:
                     )
 
     def dense_layer(self, inputs, num_units, name, reuse, activation=None):
-        output = tf.layers.dense(
+        output = tf.compat.v1.layers.dense(
                         inputs=inputs,
                         units=num_units,
                         activation=activation,
@@ -87,7 +92,7 @@ class DeepSense:
             channels = tf.shape(inputs)[-1]
             return tf.nn.dropout(
                             inputs,
-                            keep_prob=keep_prob,
+                            rate=1 - keep_prob,
                             name=name,
                             noise_shape=[
                                 self.batch_size, 1, 1, channels
@@ -96,7 +101,7 @@ class DeepSense:
         else:
             return tf.nn.dropout(
                         inputs,
-                        keep_prob=keep_prob,
+                        rate = 1 - keep_prob,
                         name=name
                     )        
 
@@ -104,11 +109,11 @@ class DeepSense:
         inputs = state
         #inputs = state[0]
         #trade_rem = state[1]
-        with tf.variable_scope(self.__name__, reuse=reuse):
+        with tf.compat.v1.variable_scope(self.__name__, reuse=reuse):
             with tf.name_scope(PHASE):
-                self.phase = tf.placeholder(dtype=tf.bool)
+                self.phase = tf.compat.v1.placeholder(dtype=tf.bool)
 
-            with tf.variable_scope(INPUT_PARAMS, reuse=reuse):
+            with tf.compat.v1.variable_scope(INPUT_PARAMS, reuse=reuse):
                 self.batch_size = tf.shape(inputs)[0]
 
             inputs = tf.reshape(inputs, 
@@ -118,11 +123,11 @@ class DeepSense:
                                 self.params.num_channels])
 
             # self.debug1 = inputs
-            with tf.variable_scope(CONV_LAYERS, reuse=reuse):
+            with tf.compat.v1.variable_scope(CONV_LAYERS, reuse=reuse):
                 window_size = self.params.window_size
                 num_convs = len(self.params.filter_sizes)
                 for i in range(0, num_convs):
-                    with tf.variable_scope(CONV_LAYERS_.format(i + 1), reuse=reuse):
+                    with tf.compat.v1.variable_scope(CONV_LAYERS_.format(i + 1), reuse=reuse):
                         window_size = window_size - self.params.kernel_sizes[i] + 1
                         inputs = self.conv2d_layer(inputs, self.params.filter_sizes[i], 
                                                     self.params.kernel_sizes[i], 
@@ -152,27 +157,25 @@ class DeepSense:
                                             self.params.window_size * self.params.filter_sizes[-1]
                                         ]
                             )
-            # self.debug2 = inputs
 
             gru_cells = []
             for i in range(0, self.params.gru_num_cells):
-                cell = tf.contrib.rnn.GRUCell(
+                cell = tf.compat.v1.nn.rnn_cell.GRUCell(
                     num_units=self.params.gru_cell_size,
                     reuse=reuse
                 )        
                 
-                cell = tf.contrib.rnn.DropoutWrapper(
+                cell = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
                     cell, 
                     output_keep_prob=self.params.dropoutkeepprobs.gru_keep_prob,
                     variational_recurrent=True,
                     dtype=tf.float32
                 )
-                
                 gru_cells.append(cell)
 
-            multicell = tf.contrib.rnn.MultiRNNCell(gru_cells)
+            multicell = tf.compat.v1.nn.rnn_cell.MultiRNNCell(gru_cells)
             with tf.name_scope(DYNAMIC_UNROLLING):
-                output, final_state = tf.nn.dynamic_rnn(
+                output, final_state = tf.compat.v1.nn.dynamic_rnn(
                     cell=multicell,
                     inputs=inputs,
                     dtype=tf.float32
@@ -187,10 +190,10 @@ class DeepSense:
             #trade_rem = tf.expand_dims(trade_rem, axis=1)
             #output = tf.concat([output, trade_rem], axis=1)
 
-            with tf.variable_scope(FULLY_CONNECTED, reuse=reuse):
+            with tf.compat.v1.variable_scope(FULLY_CONNECTED, reuse=reuse):
                 num_dense_layers = len(self.params.dense_layer_sizes)
                 for i in range(0, num_dense_layers):
-                    with tf.variable_scope(DENSE_LAYER_.format(i + 1), reuse=reuse):
+                    with tf.compat.v1.variable_scope(DENSE_LAYER_.format(i + 1), reuse=reuse):
                         output = self.dense_layer(output, self.params.dense_layer_sizes[i], 
                                                     DENSE_.format(i + 1), reuse, activation=tf.nn.relu)                    
                         
@@ -205,7 +208,7 @@ class DeepSense:
                 avg_q = tf.reduce_mean(self._values, axis=0)
                 self._avg_q_summary = []
                 for idx in range(self.params.num_actions):
-                    self._avg_q_summary.append(tf.summary.histogram('q/{}'.format(idx), avg_q[idx]))
-                self._avg_q_summary = tf.summary.merge(self._avg_q_summary, name=AVG_Q_SUMMARY)
+                    self._avg_q_summary.append(tf.compat.v1.summary.histogram('q/{}'.format(idx), avg_q[idx]))
+                self._avg_q_summary = tf.compat.v1.summary.merge(self._avg_q_summary, name=AVG_Q_SUMMARY)
             
-            self._action = tf.arg_max(self._values, dimension=1, name=ACTION)
+            self._action = tf.compat.v1.arg_max(self._values, dimension=1, name=ACTION)
