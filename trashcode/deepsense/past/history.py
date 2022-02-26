@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from config import *
+from config_mods import *
 
 class History:
     '''Experiance buffer of the behaviour policy of the agent'''

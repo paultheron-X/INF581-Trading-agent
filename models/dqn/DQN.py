@@ -11,22 +11,21 @@ import pickle
 from collections import deque
 import pandas as pd
 
-from .constants import *
 from gym_trading_btc.gym_anytrading.envs import *
 
-df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_2017-2022_minute.csv", delimiter= ",")
+from config_mods import config
 
 class DQNSolver(nn.Module):
-    def __init__(self, input_size = WINDOW_SIZE*NUM_COLUMNS, n_actions = NUM_ACTIONS) -> None:
+    def __init__(self, input_size, n_actions, dropout, hidden_size) -> None:
         super(DQNSolver, self).__init__()
         self.fc = nn.Sequential(
-                nn.Linear(input_size, 256),
+                nn.Linear(input_size, hidden_size),
                 #nn.Dropout(dropout),
                 nn.ReLU(),
                 #('hidden' , nn.Linear(hidden_size, hidden_size)),
-                nn.Dropout(p = 0.1),
+                nn.Dropout(p = dropout),
                 #('relu2' , nn.ReLU()),
-                nn.Linear(256, n_actions),
+                nn.Linear(hidden_size, n_actions),
                 nn.Softmax()
             )
         
@@ -34,19 +33,40 @@ class DQNSolver(nn.Module):
         return self.fc(x)
 
 class DQNAgent: 
-    def __init__(self, state_space = WINDOW_SIZE*NUM_COLUMNS, action_space = NUM_ACTIONS, dropout = 0.2, hidden_size = 128,  pretrained = False, lr = 0.00025, gamma=0.9, max_mem_size = 30000, exploration_rate = 1.0, exploration_decay = 0.99, exploration_min = 0.1,  batch_size = 32) -> None:
-         self.state_space = state_space
+    def __init__(self,  window_size =  config['window_size'],
+                        num_features = config['num_features'],
+                        action_space = config['num_actions'], 
+                        dropout = config['dropout'], 
+                        hidden_size = config['hidden_size'],  
+                        lr = config['lr'], 
+                        gamma=config['gamma'], 
+                        max_mem_size = config['max_mem_size'],
+                        exploration_rate = config['exploration_rate'], 
+                        exploration_decay = config['exploration_decay'],
+                        exploration_min = config['exploration_min'], 
+                        batch_size = config['batch_size'],
+                        frame_len = config['frame_len'],
+                        dataset_path = config['df_path']
+                        ) -> None:
+         
+         
+         self.state_space = window_size*num_features
          self.action_space = action_space
-         self.pretrained = pretrained
          self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
          
-         self.dqn_validation = DQNSolver(input_size =state_space, 
-                              n_actions=action_space,
-                              ).to(self.device)
+         self.dqn_validation = DQNSolver(
+                            input_size =self.state_space, 
+                            n_actions=action_space,
+                            dropout=dropout,
+                            hidden_size=hidden_size
+                            ).to(self.device)
          
-         self.dqn_target = DQNSolver(input_size =state_space, 
-                              n_actions=action_space,
-                              ).to(self.device)
+         self.dqn_target = DQNSolver(
+                            input_size =self.state_space, 
+                            n_actions=action_space,
+                            dropout=dropout,
+                            hidden_size=hidden_size
+                            ).to(self.device)
          
          self.lr = lr
          
@@ -66,10 +86,11 @@ class DQNAgent:
          
          self.batch_size = batch_size
          
-         self.env = CryptoEnv(df=df_btc, window_size= WINDOW_SIZE, frame_len = FRAME_LEN)
+         df_btc = pd.read_csv(dataset_path, delimiter=",")
+         
+         self.env = CryptoEnv(df=df_btc, window_size=window_size, frame_len = frame_len)
          
     def predict(self, state):
-        #state = state[np.newaxis, ...]
         if random.random() < self.exploration_rate:
             return random.randint(0, self.action_space-1)
         else: 
@@ -137,7 +158,6 @@ class DQNAgent:
             target[batch_index, action] = reward + self.gamma*pred_next[batch_index, action_max]*(1-term)
             
             #current = self.dqn(state).gather(1, action.long())
-            
             
             loss = self.loss(current_pred, target)
             loss.backward()

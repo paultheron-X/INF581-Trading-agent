@@ -1,4 +1,4 @@
-from config import *
+from config_mods import *
 
 class DropoutKeepProbs:
     '''Defines the keep probabilities for different dropout layers'''

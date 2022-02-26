@@ -3,7 +3,7 @@ from os.path import join
 
 import tensorflow as tf
 
-from config import *
+from config_mods import *
 
 from models.deepsense import *
 

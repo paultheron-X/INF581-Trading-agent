@@ -4,7 +4,7 @@ import random
 import numpy as np
 from os.path import join
 
-from config import *
+from config_mods import *
 
 class ReplayMemory:
     '''Memory buffer for experiance replay'''

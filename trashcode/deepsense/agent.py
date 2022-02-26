@@ -19,7 +19,7 @@ from gym_trading_btc.gym_anytrading.envs import CryptoEnv
 
 from .past import *
 
-from config import *
+from config_mods import *
 
 
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_2017-2022_minute.csv", delimiter= ",")

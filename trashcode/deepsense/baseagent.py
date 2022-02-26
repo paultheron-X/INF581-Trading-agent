@@ -4,7 +4,7 @@ import os
 
 import tensorflow as tf
 
-from config import *
+from config_mods import *
 
 
 class BaseAgent(object):
