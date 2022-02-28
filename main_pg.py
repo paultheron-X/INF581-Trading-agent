@@ -9,11 +9,12 @@ import pandas as pd
 
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_1h.csv", delimiter= ",")
 
-window_size = 2
+window_size = 400
 frame_len = 6
 start_index = window_size
 end_index = len(df_btc)
-print("ça commence")
+#print("ça commence")
+#env = gym.make('CartPole-v0')
 env = CryptoEnv(df = df_btc , window_size=window_size, frame_len= frame_len)
 env.seed(1)     # reproducible, general Policy gradient has high variance
 env = env.unwrapped

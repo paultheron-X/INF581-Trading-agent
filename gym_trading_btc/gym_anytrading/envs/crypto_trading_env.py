@@ -28,6 +28,7 @@ class CryptoTradingEnv(gym.Env):
         self.prices, self.signal_features = self._process_data()
         self.frame_len = min(frame_len, len(self.prices) - window_size)
         self.shape = (window_size, self.signal_features.shape[1])
+        #self.shape = (window_size*7, self.signal_features.shape[1])
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
