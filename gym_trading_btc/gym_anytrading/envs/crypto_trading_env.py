@@ -27,8 +27,8 @@ class CryptoTradingEnv(gym.Env):
         self.window_size = window_size
         self.prices, self.signal_features = self._process_data()
         self.frame_len = min(frame_len, len(self.prices) - window_size)
-        self.shape = (window_size, self.signal_features.shape[1])
-        #self.shape = (window_size*7, self.signal_features.shape[1])
+        #self.shape = (window_size, self.signal_features.shape[1])
+        self.shape = (window_size*7, self.signal_features.shape[1])
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
@@ -82,7 +82,7 @@ class CryptoTradingEnv(gym.Env):
 
     def step(self, action):
         self._current_tick += 1
-        if self._current_tick == self._end_tick:
+        if self._current_tick >= self._end_tick-1:
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
             step_reward = self._update_profit_reward(
