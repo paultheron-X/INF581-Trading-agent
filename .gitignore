@@ -140,3 +140,5 @@ dist/
 build/
 
 .DS_Store
+
+.json

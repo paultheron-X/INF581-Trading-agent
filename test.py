@@ -15,10 +15,12 @@ batch = random.sample(tot, 10)
 m = nn.Conv2d(2, 28, 3, stride=1)
 
 
-input = torch.randn(1, 2, 5, 5)
+input = torch.randn(3, 9, 128)
 
 print(input)
+print(torch.unbind(input, dim=1)[-1])
 
-output = m(input)
+#output = m(input)
 
-print(output)
+#print(output)
+
