@@ -1,5 +1,6 @@
+import copy
 import os, sys
-from re import X
+
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
@@ -19,29 +20,75 @@ from config_mods import config_dqn_deepsense as config
 from .replay_memory import Memory
 
 class DQNSolver(nn.Module):
-    def __init__(self, input_size, n_actions, dropout, hidden_size, filter_size, kernel_size, dropout_conv) -> None:
+    def __init__(self, input_size, n_channels, n_actions, dropout, hidden_size_mlp, filter_size, kernel_size, dropout_conv, batch_size, stride, gru_cell_size, gru_num_cells, dropout_gru) -> None:
         super(DQNSolver, self).__init__()
-        self.fc = nn.Sequential()
-        self.fc.add_module('input', nn.Linear(input_size, hidden_size[0] ))
-        self.fc.add_module('relu', nn.LeakyReLU())
-        self.fc.add_module('dropout_0', nn.Dropout(p = dropout))
+        self.batch_size = batch_size
+        self.n_channels = n_channels
+        self.input_size = input_size
+        self.stride = stride 
+        
+        self.convolutional_block = torch.nn.Sequential()
+        num_layers = len(kernel_size)
+        for i in range(num_layers):
+            in_val = n_channels if i==0 else filter_size[i]
+            block = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels = in_val, 
+                            out_channels= filter_size[1], 
+                            kernel_size= [1, kernel_size[1]], 
+                            stride=1, 
+                            padding='same'),
+                torch.nn.LeakyReLU(),
+                #torch.nn.MaxPool2d(kernel_size=kernel_size[i], stride = 1, padding=1),
+                torch.nn.Dropout(p = dropout_conv)
+            )
+            # ---> Add batch normalisation 
+            self.convolutional_block.add_module('conv_block_'+ str(i), copy.copy(block))
 
-        for ind in range(1, len(hidden_size)):
-            self.fc.add_module('hidden' + str(ind), nn.Linear(hidden_size[ind-1], hidden_size[ind]))
-            self.fc.add_module('relu' + str(ind), nn.LeakyReLU())
-            self.fc.add_module('dropout_0' + str(ind), nn.Dropout(p = dropout))
+        self.gru_block = torch.nn.Sequential(
+            torch.nn.GRU(
+                input_size = int(input_size*filter_size[-1]/stride),
+                hidden_size = gru_cell_size,
+                num_layers = gru_num_cells, 
+                dropout = dropout_gru, 
+                bias = True,
+                batch_first = True,
+                bidirectional = False 
+            )
+        )
         
-        self.fc.add_module('output', nn.Linear(hidden_size[-1], n_actions ))
-        self.fc.add_module('softmax', nn.Softmax())
+        self.mlp_block = torch.nn.Sequential()
         
+
+        for ind in range(1, len(hidden_size_mlp)):
+            block = torch.nn.Sequential(
+                nn.Linear(in_features = hidden_size_mlp[ind-1], 
+                          out_features = hidden_size_mlp[ind]),
+                nn.LeakyReLU(),
+                nn.Dropout(p = dropout)
+            )
+            self.mlp_block.add_module('mlp_block_'+ str(ind), copy.copy(block))
+        
+        block_fin = torch.nn.Sequential(
+                nn.Linear(hidden_size_mlp[-1], n_actions),
+                nn.Softmax()
+            )
+        
+        self.mlp_block.add_module('mlp_block_output', copy.copy(block_fin))
+        
+            
     def forward(self, x):
-        print(x)
-        print(x.shape)
-        y = torch.reshape(x, (3, 2, 2, 7 ))
-        print(y.shape)
-        print(y)
-        quit()
-        return self.fc(x)
+
+        y = torch.reshape(x, (x.shape[0], self.stride, int(self.input_size/self.stride), self.n_channels))
+        y = torch.permute(y, (0, 3, 1, 2))  # To have the correct number of channels
+        conv_res = self.convolutional_block(y)
+        conv_res = torch.permute(conv_res, (0, 2, 1, 3))
+        conv_res = torch.reshape(conv_res, (conv_res.shape[0], self.stride, conv_res.shape[2] * conv_res.shape[3]))
+         
+        gru_res, h = self.gru_block(conv_res)
+       
+        output_gru = torch.unbind(gru_res, dim=1)[-1] # to get the output of the last
+        output_fin = self.mlp_block(output_gru)
+        return output_fin
 
 class DQNAgent_ds: 
     def __init__(self,  window_size =  config['window_size'],
@@ -60,7 +107,11 @@ class DQNAgent_ds:
                         dataset_path = config['df_path'],
                         filter_size = config['filter_sizes'],
                         kernel_size = config['kernel_sizes'],
-                        dropout_conv = config['dropout_conv']
+                        dropout_conv = config['dropout_conv'],
+                        stride = config['stride'],
+                        gru_cell_size = config['gru_cell_size'],
+                        gru_num_cells = config['gru_num_cell'], 
+                        dropout_gru = config['dropout_gru']
                         ) -> None:
          
          
@@ -69,23 +120,35 @@ class DQNAgent_ds:
          self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
          
          self.dqn_validation = DQNSolver(
-                            input_size =self.state_space, 
-                            n_actions=action_space,
-                            dropout=dropout,
-                            hidden_size=hidden_size, 
+                            input_size = window_size, 
+                            n_channels = num_features,
+                            n_actions= action_space,
+                            dropout= dropout,
+                            hidden_size_mlp=hidden_size, 
                             filter_size = filter_size,
                             kernel_size = kernel_size,
-                            dropout_conv = dropout_conv
+                            dropout_conv = dropout_conv,
+                            batch_size = batch_size,
+                            stride = stride, 
+                            gru_cell_size = gru_cell_size,
+                            gru_num_cells = gru_num_cells,
+                            dropout_gru = dropout_gru
                             ).to(self.device)
          
          self.dqn_target = DQNSolver(
-                            input_size =self.state_space, 
-                            n_actions=action_space,
-                            dropout=dropout,
-                            hidden_size=hidden_size, 
+                            input_size = window_size, 
+                            n_channels = num_features,
+                            n_actions = action_space,
+                            dropout = dropout,
+                            hidden_size_mlp = hidden_size, 
                             filter_size = filter_size,
                             kernel_size = kernel_size,
-                            dropout_conv = dropout_conv
+                            dropout_conv = dropout_conv, 
+                            batch_size = batch_size,
+                            stride = stride,
+                            gru_cell_size = gru_cell_size,
+                            gru_num_cells = gru_num_cells,
+                            dropout_gru = dropout_gru
                             ).to(self.device)
          
          self.lr = lr
@@ -115,6 +178,7 @@ class DQNAgent_ds:
             return random.randint(0, self.action_space-1)
         else: 
             state = torch.from_numpy(state).float()
+            state = state.unsqueeze(0)
             action = self.dqn_validation(state.to(self.device)).argmax().unsqueeze(0).unsqueeze(0).cpu()
             return action.item()  
         

@@ -41,6 +41,7 @@ def get_config(config_parser):
     config['filter_sizes'] = json.loads(config_parser.get('convolution', 'FILTER_SIZES'))
     config['kernel_sizes'] = json.loads(config_parser.get('convolution', 'KERNEL_SIZES'))
     config['padding'] = (config_parser.get('convolution', 'PADDING'))
+    config['stride'] = int(config_parser.get('convolution', 'STRIDE'))
     
     config['gru_cell_size'] = int(config_parser.get('gru', 'GRU_CELL_SIZE'))
     config['gru_num_cell'] = int(config_parser.get('gru', 'GRU_NUM_CELLS'))
