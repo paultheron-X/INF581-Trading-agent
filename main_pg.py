@@ -4,17 +4,13 @@ from gym_trading_btc.gym_anytrading.envs.bitcoin_env import *
 import matplotlib.pyplot as plt
 import pandas as pd
 
-#DISPLAY_REWARD_THRESHOLD = 400  # renders environment if total episode reward is greater then this threshold
-#RENDER = False  # rendering wastes time
-
 df_btc = pd.read_csv("gym_trading_btc/gym_anytrading/datasets/data/Bitstamp_BTCUSD_1h.csv", delimiter= ",")
 
 window_size = 400
 frame_len = 6
 start_index = window_size
 end_index = len(df_btc)
-#print("ça commence")
-#env = gym.make('CartPole-v0')
+
 env = CryptoEnv(df = df_btc , window_size=window_size, frame_len= frame_len)
 env.seed(1)     # reproducible, general Policy gradient has high variance
 env = env.unwrapped
@@ -31,18 +27,18 @@ RL = PolicyGradient(
     reward_decay=0.99,
     # output_graph=True,
 )
+last_i = 0
 
 for i_episode in range(3000):
 
     observation = env.reset()
-
-    while True:
-        #if RENDER: env.render()
-
+    #print(observation.shape)
+    while True and observation.shape == env.observation_space.shape:
+        last_i = i_episode
+        #print(observation.shape)
         action = RL.choose_action(observation)
 
         observation_, reward, done, info = env.step(action)
-
         RL.store_transition(observation, action, reward)
 
         if done:
@@ -52,7 +48,6 @@ for i_episode in range(3000):
                 running_reward = ep_rs_sum
             else:
                 running_reward = running_reward * 0.99 + ep_rs_sum * 0.01
-            #if running_reward > DISPLAY_REWARD_THRESHOLD: RENDER = True     # rendering
             print("episode:", i_episode, "  reward:", int(running_reward))
 
             vt = RL.learn()
@@ -63,10 +58,12 @@ for i_episode in range(3000):
                 plt.ylabel('normalized state-action value')
                 plt.show()
             break
-
         observation = observation_
 
+print("c'est fini")
 plt.figure(figsize=(16, 6))
 env.render_all(window='large')
 #plt.savefig("output.png")
 plt.show()
+
+#Pour exécuter ce fichier, il faut commenter la ligne 30 de crypto_trading_en.py et décommenter la ligne 31
