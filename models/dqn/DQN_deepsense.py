@@ -70,7 +70,7 @@ class DQNSolver(nn.Module):
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(hidden_size_mlp[-1], n_actions),
-                nn.Softmax()
+                nn.Softmax(dim=1)
             )
         
         self.mlp_block.add_module('mlp_block_output', copy.copy(block_fin))
@@ -112,11 +112,12 @@ class DQNAgent_ds:
                         gru_cell_size = config['gru_cell_size'],
                         gru_num_cells = config['gru_num_cell'], 
                         dropout_gru = config['dropout_gru']
-                        ) -> None:
+                        ):
          
          
          self.state_space = window_size*num_features
          self.action_space = action_space
+         #self.device = "cpu"
          self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
          
          self.dqn_validation = DQNSolver(

@@ -3,6 +3,7 @@ from .bitcoin_env import CryptoEnv
 
 class CryptoEnv_scorer():
     def __init__(self, df, window_size, frame_len) -> None:
+        
         self._actual_env = CryptoEnv(df, window_size, frame_len)
         
         self._random_env = CryptoEnv(df, window_size, frame_len)

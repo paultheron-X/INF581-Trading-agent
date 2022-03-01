@@ -46,7 +46,11 @@ while counter < num_episode:
             agent.update_params()
     if ind % config['training_state'] ==0:                    # print current learning infos every 10 games
         avg = np.mean(game_reward[max(ind-100, 0):ind])
-        print("> Game Numer : " + str(ind) + " | Last Game Reward = " + str(current_reward) + " | Average R on 100 last games : " + str(avg) + " | Exploration rate : " + str(agent.get_exploration()) + " | Current FPS : " + str(round(1/(t2-t1))))
+        try :
+            FPS = str(round(1/(t2-t1)))
+        except:
+            FPS = "--"
+        print("> Game Numer : " + str(ind) + " \t| Last Game Reward = " + str(current_reward) + " \t| Average R on 100 last games : " + str(avg) + " \t| Exploration rate : " + str(agent.get_exploration()) + " \t| Current FPS : " + FPS)
 
 #plt.plot(game_reward)
 #plt.show()
