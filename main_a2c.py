@@ -50,7 +50,7 @@ for i_episode in range(MAX_EPISODE):
     while True and observation.shape == (env.observation_space.shape[0],):
 
         action = actor.choose_action(observation)
-        #print(str(action))
+        #print(str(env._current_tick))
         observation_, reward, done, info = env.step(action)
         reward = reward*0.1
 
@@ -60,7 +60,7 @@ for i_episode in range(MAX_EPISODE):
         observation = observation_
         t += 1
         ep_rs.append(reward)
-        if t > MAX_EP_STEPS:
+        if t > MAX_EP_STEPS or done:
             ep_rs_sum = sum(ep_rs)
             if 'running_reward' not in globals():
                 running_reward = ep_rs_sum
