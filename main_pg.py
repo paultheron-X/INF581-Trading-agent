@@ -17,6 +17,7 @@ env = env.unwrapped
 
 print(env.action_space)
 print(env.observation_space)
+print((env.observation_space.shape[0],))
 print(env.observation_space.high)
 print(env.observation_space.low)
 
@@ -27,18 +28,24 @@ RL = PolicyGradient(
     reward_decay=0.99,
     # output_graph=True,
 )
-last_i = 0
 
 for i_episode in range(3000):
 
     observation = env.reset()
     #print(observation.shape)
-    while True and observation.shape == env.observation_space.shape:
-        last_i = i_episode
-        #print(observation.shape)
+    while True and observation.shape == (env.observation_space.shape[0],):
+        #and (observation.shape == env.observation_space.shape)
+        #print(str(observation.shape))
+        #if observation.shape == (env.observation_space.shape[0],):
         action = RL.choose_action(observation)
-
+        
+        if observation.shape == env.observation_space.shape:
+            action = RL.choose_action(observation)
+        else:
+            action = env.action_space.sample()
+        
         observation_, reward, done, info = env.step(action)
+        
         RL.store_transition(observation, action, reward)
 
         if done:
@@ -51,16 +58,18 @@ for i_episode in range(3000):
             print("episode:", i_episode, "  reward:", int(running_reward))
 
             vt = RL.learn()
-
-            if i_episode == 0:
+            """
+            if i_episode == 2999:
                 plt.plot(vt)    # plot the episode vt
                 plt.xlabel('episode steps')
                 plt.ylabel('normalized state-action value')
                 plt.show()
+            """
             break
         observation = observation_
+        #print(str(observation_.shape))
 
-print("c'est fini")
+print("> Ending episode")
 plt.figure(figsize=(16, 6))
 env.render_all(window='large')
 #plt.savefig("output.png")
