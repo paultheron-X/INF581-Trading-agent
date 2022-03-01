@@ -227,3 +227,6 @@ class CryptoTradingEnv(gym.Env):
 
     def max_possible_profit(self):  # trade fees are ignored
         raise NotImplementedError
+    
+    def best_action(self):
+        raise NotImplementedError

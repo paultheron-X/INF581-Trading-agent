@@ -1,4 +1,5 @@
 import numpy as np
+from torch import threshold
 
 from .crypto_trading_env import CryptoTradingEnv, Actions
 
@@ -75,19 +76,16 @@ class CryptoEnv(CryptoTradingEnv):
         self._total_reward += instant_reward
         return instant_reward
 
-    def max_possible_profit(self):
-        # la fonction est à réécrire, mais dans l'idée, c'est ça
-        # sachant qu'on ne prend pas en compte les fees :
-        # il faudrait compter en benef les moindres augmentations entre 2 temps
-        start_tick = self._start_tick + self._padding_tick
-        end_tick = self._end_tick
-        diff_price = self.prices[start_tick + 2:end_tick + 2] - \
-            self.prices[start_tick + 1:end_tick + 1]
-        profit = 0.
-        quantity = 0
-        for i, d in enumerate(diff_price):
-            s_diff = -1 if d < 0 else 1
-            quantity += self._unit * s_diff
-            profit += self._unit * s_diff * self.prices[start_tick + i + 1]
-        profit += quantity * self._unit * self.prices[end_tick + 1]
-        return profit
+    def best_action(self, ):
+        next_price = self.prices[int(self._current_tick+1)]
+        current_price = self.prices[int(self._current_tick)]
+        threshold = 0.05
+        
+        if next_price/current_price < 1-threshold:
+            action= 2
+        elif next_price/current_price > 1+ threshold:
+            action =1
+        else:
+            action= 0
+
+        return self.step(action=action)
