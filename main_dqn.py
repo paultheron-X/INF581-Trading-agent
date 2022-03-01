@@ -72,6 +72,10 @@ while counter < num_episode:
         avg = np.mean(game_reward[max(ind-100, 0):ind])
         avg_random = np.mean(random_game_reward[max(ind-100, 0):ind])
         avg_optimal = np.mean(optimal_game_reward[max(ind-100, 0):ind])
+        try :
+            FPS = str(round(1/(t2-t1)))
+        except:
+            FPS = "--"
         print("\n> Game Numer : " + str(ind) + " | Last Game Reward = " + str(current_reward) + " | Average R on 100 last games : " + str(avg) + " | Exploration rate : " + str(agent.get_exploration()) + " | Current FPS : " + str(round(1/(t2-t1))))
         print("     > Last game profit : " + str(game_profit) + " | Last game random profit = " + str(random_profit) + " | Last game optimal profit = " + str(optimal_profit))
         #print("     > Reward comparison to random model : " + str(avg/avg_random) + " | Comparison to optimal model = " + str(avg/avg_optimal))

@@ -112,11 +112,12 @@ class DQNAgent_ds:
                         gru_cell_size = config['gru_cell_size'],
                         gru_num_cells = config['gru_num_cell'], 
                         dropout_gru = config['dropout_gru']
-                        ) -> None:
+                        ):
          
          
          self.state_space = window_size*num_features
          self.action_space = action_space
+         #self.device = "cpu"
          self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
          
          self.dqn_validation = DQNSolver(
