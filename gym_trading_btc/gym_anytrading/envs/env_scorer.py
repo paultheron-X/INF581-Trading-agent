@@ -4,13 +4,13 @@ from .bitcoin_env import CryptoEnv
 class CryptoEnv_scorer():
     def __init__(self, df, window_size, frame_len) -> None:
         
-        self._actual_env = CryptoEnv(df, window_size, frame_len)
+        self._actual_env = CryptoEnv(df, window_size, frame_len, name = 'test')
         
-        self._random_env = CryptoEnv(df, window_size, frame_len)
+        self._random_env = CryptoEnv(df, window_size, frame_len, name = 'random')
         self._random_reward_ep = 0
         self._random_profit = 0
         
-        self._optimal_env = CryptoEnv(df, window_size, frame_len)
+        self._optimal_env = CryptoEnv(df, window_size, frame_len, name = 'optimal')
         self._optimal_reward_ep = 0
         self._optimal_profit = 0
         

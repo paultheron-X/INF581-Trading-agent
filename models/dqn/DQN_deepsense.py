@@ -119,6 +119,7 @@ class DQNAgent_ds:
          self.action_space = action_space
          #self.device = "cpu"
          self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+         print('Using' , self.device, 'device')
          
          self.dqn_validation = DQNSolver(
                             input_size = window_size, 

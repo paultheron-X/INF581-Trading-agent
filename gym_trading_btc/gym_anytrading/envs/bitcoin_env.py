@@ -16,7 +16,7 @@ class CryptoEnv:
     
     metadata = {'render.modes': ['human']}
        
-    def __init__(self, df, window_size, frame_len):
+    def __init__(self, df, window_size, frame_len, name = 'base'):
         assert df.ndim == 2
         assert df.shape[0] > window_size
         
@@ -25,6 +25,7 @@ class CryptoEnv:
         self._unit = 1  # units of btc
         self._quantity = 0  # positive quantity
         
+        self.name = name
         
         self.seed()
         self.df = df
@@ -251,6 +252,7 @@ class CryptoEnv:
 
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
+            #print('quantity ' + self.name, self._quantity)
             s_fees = 1 if self._quantity < 0 else -1
             transation_amount = self._quantity * self._unit * current_price * \
                 (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can

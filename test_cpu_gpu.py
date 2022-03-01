@@ -2,10 +2,12 @@
 
 import torch
 import math
+from tqdm import tqdm
 
 
 dtype = torch.float
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(device)
 # device = torch.device("cuda:0") # Uncomment this to run on GPU
 
 # Create random input and output data
@@ -19,14 +21,15 @@ c = torch.randn((), device=device, dtype=dtype)
 d = torch.randn((), device=device, dtype=dtype)
 
 learning_rate = 1e-6
-for t in range(2000):
+for t in tqdm(range(2000)):
     # Forward pass: compute predicted y
     y_pred = a + b * x + c * x ** 2 + d * x ** 3
 
     # Compute and print loss
     loss = (y_pred - y).pow(2).sum().item()
-    if t % 100 == 99:
-        print(t, loss)
+    if t % 1000 == 99:
+       # print(t, loss)
+       pass
 
     # Backprop to compute gradients of a, b, c, d with respect to loss
     grad_y_pred = 2.0 * (y_pred - y)

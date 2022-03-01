@@ -39,7 +39,6 @@ while counter < num_episode:
         old_state = issue.copy()
     
         issue, reward, action_chosen, terminal = agent.act(recom_action)
-        print(reward)
         
         agent.remember(old_state, action_chosen, reward, issue, terminal)
         
@@ -49,8 +48,8 @@ while counter < num_episode:
         t2 = time.time()
         
         if terminal:
-            print(reward)
             game_profit = reward
+            
     
     counter +=1
     
@@ -81,5 +80,5 @@ while counter < num_episode:
         #print("     > Reward comparison to random model : " + str(avg/avg_random) + " | Comparison to optimal model = " + str(avg/avg_optimal))
         print("     > Profit comparison to random model : " + str(game_profit/random_profit) + " | Comparison to optimal model = " + str(game_profit/optimal_profit))
 
-plt.plot(game_reward)
-plt.savefig('test.png')
+plt.plot(normal_game_profit,random_game_profit,  optimal_game_profit)
+plt.savefig('figs/test.png')

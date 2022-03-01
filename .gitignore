@@ -142,3 +142,5 @@ build/
 .DS_Store
 
 .json
+
+*.pyc
