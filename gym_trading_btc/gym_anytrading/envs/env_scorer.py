@@ -16,8 +16,12 @@ class CryptoEnv_scorer():
 
     def reset(self):
         obs = self._actual_env.reset()
+        self._random_env.reset()
+        self._optimal_env.reset()
+        
+        
         self._random_env.merge(self._actual_env)
-        self._random_env.merge(self._actual_env)
+        self._optimal_env.merge(self._actual_env)
         
         self._random_reward_ep = 0
         self._random_profit = 0
@@ -33,10 +37,22 @@ class CryptoEnv_scorer():
     def step(self, action):
         
         random_action = self._random_env.action_space.sample()
-        observation, reward, done, info = self._random_env.step(action)
+        observation, reward, done, info = self._random_env.step(random_action)
         self._random_reward_ep += reward
         if not done:
             self._random_profit += reward
         
-        
-        return self._actual_env.step(action=action)
+        observation, reward, done, info = self._optimal_env.best_action()
+        self._optimal_reward_ep += reward
+        if not done:
+            self._optimal_profit += reward
+                
+        observation, reward, done, info = self._actual_env.step(action=action)
+                
+        return observation, reward, done, info
+    
+    def get_reward(self):
+        return self._random_reward_ep, self._optimal_reward_ep
+    
+    def get_profit(self):
+        return self._random_profit, self._optimal_profit

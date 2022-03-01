@@ -1,8 +1,9 @@
-import numpy as np
-from torch import threshold
-import matplotlib.pyplot as plt
+from argparse import Action
+import gym
 from gym import spaces
 from gym.utils import seeding
+import numpy as np
+import matplotlib.pyplot as plt
 from enum import Enum
 
 from config_mods import *
@@ -12,20 +13,15 @@ class Actions(Enum):
     Stay = 0
     Buy = 1
 
-class CryptoEnv:
-    
+
+class CryptoTradingEnv(gym.Env):
+
     metadata = {'render.modes': ['human']}
-       
-    def __init__(self, df, window_size, frame_len):
+
+    def __init__(self, df, window_size, frame_len, start_budget):
         assert df.ndim == 2
         assert df.shape[0] > window_size
-        
-        
-        self.trade_fee_bid_percent = 0.01  # unit
-        self._unit = 1  # units of btc
-        self._quantity = 0  # positive quantity
-        
-        
+
         self.seed()
         self.df = df
         self.window_size = window_size
@@ -217,94 +213,20 @@ class CryptoEnv:
     def pause_rendering(self):
         plt.show()
 
+    def _process_data(self):
+        raise NotImplementedError
+
     def _get_local_state(self):
         return None
 
-    def _process_data(self, verbose=False):
-
-        prices = self.df.loc[:, 'close'].to_numpy()
-        features = self.df.loc[:,
-                               [
-                                   "open", "high",
-                                   "low", "close",
-                                   "Volume BTC", "Volume USD"
-                               ]
-                               ].to_numpy()
-
-        diff = np.insert(np.diff(prices), 0, 0)
-        signal_features = np.c_[features, diff]
-        
-        if verbose:
-            print(f"Signal rows : {len(signal_features)}")
-            print(f"Signal columns : {len(signal_features[0])}")
-            print(signal_features,end='\n\n')
-
-        return prices, signal_features
-
-    def _get_local_state(self):
-        return self._quantity
-
     def _calculate_reward(self, action, terminal=False):
-        next_price = self.prices[int(self._current_tick+1)]
-        current_price = self.prices[int(self._current_tick)]
-        #print(f"Current price : {current_price} USD")
+        raise NotImplementedError
 
-        if terminal:
-            # etat terminal -> on revend tout au prix du marché pour avoir notre profit
-            s_fees = 1 if self._quantity < 0 else -1
-            transation_amount = self._quantity * self._unit * current_price * \
-                (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can
-            self._total_profit += transation_amount
-            reward = self._total_profit
-            return reward
-
-        else:
-            if action == Actions.Buy.value:  # Buy
-                self._quantity += 1
-                current_transaction_amount = -self._unit * \
-                    current_price * (1+self.trade_fee_bid_percent)
-                self._total_profit += current_transaction_amount
-            
-            elif action == Actions.Sell.value:  # Sell
-                self._quantity -= 1
-                current_transaction_amount = self._unit * \
-                    current_price * (1-self.trade_fee_bid_percent)
-                self._total_profit += current_transaction_amount
-
-            s_fees = - 1 if self._quantity < 0 else 1
-            reward = self._quantity * self._unit * \
-                (next_price - current_price) * \
-                (1 + s_fees * self.trade_fee_bid_percent)
-            return reward
-
-    # Je mets dans CryptoTrading la MaJ du buget et de la quantité
     def _update_profit_reward(self, action, terminal=False):
-        instant_reward = self._calculate_reward(
-            action=action, terminal=terminal)
-        self._total_reward += instant_reward
-        return instant_reward
+        raise NotImplementedError
 
+    def max_possible_profit(self):  # trade fees are ignored
+        raise NotImplementedError
+    
     def best_action(self):
-        """Function to use in order to have the best possible action at a time t
-
-        Returns:
-            tuple: same return than step function fot this precise 'best' action
-        """
-        
-        next_price = self.prices[int(self._current_tick+1)]
-        current_price = self.prices[int(self._current_tick)]
-        threshold = 0
-        
-        
-        if (next_price/current_price) < (1  - threshold):  
-            action = 2
-        elif (next_price/current_price) > 1 + threshold:
-            action = 1
-        else:
-            action= 0
-
-        return self.step(action=action)
-    
-    
-    
-    
+        raise NotImplementedError

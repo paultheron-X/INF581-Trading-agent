@@ -70,7 +70,7 @@ class DQNSolver(nn.Module):
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(hidden_size_mlp[-1], n_actions),
-                nn.Softmax()
+                nn.Softmax(dim =1)
             )
         
         self.mlp_block.add_module('mlp_block_output', copy.copy(block_fin))
@@ -263,3 +263,9 @@ class DQNAgent_ds:
 
     def get_exploration(self):
         return self.exploration_rate
+
+    def get_reward(self):
+        return self.env.get_reward()
+    
+    def get_profit(self):
+        return self.env.get_profit()
