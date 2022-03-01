@@ -85,8 +85,7 @@ class CryptoTradingEnv(gym.Env):
         if self._current_tick >= self._end_tick-1:
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
-            step_reward = self._update_profit_reward(
-                action=action, terminal=True)
+            step_reward = self._update_profit_reward(action=action, terminal=True)
             #print(" > For this last step, Action :  " + str(action) + " | Reward : " +
              #     str(step_reward) + " | Total profit " + str(self._total_profit))
         else:
