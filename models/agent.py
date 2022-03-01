@@ -1,11 +1,14 @@
 
+from gym.spaces import Discrete
 
 class Agent: 
 
     def __init__(self, **kwargs):
          self.window_size = kwargs["window_size"]
          self.num_features = kwargs["num_features"]
-         self.action_space = kwargs["num_actions"]
+         self.num_actions = kwargs["num_actions"]
+
+         self.action_space = Discrete(self.num_actions)
          self.state_space = self.window_size * self.num_features
         
          

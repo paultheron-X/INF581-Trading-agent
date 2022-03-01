@@ -2,12 +2,12 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from models.dqn import DQNAgent_ds
+from models.dqn import DQNAgentDeepsense
 
 from config_mods import config_dqn_deepsense as config
 
 
-agent = DQNAgent_ds()
+agent = DQNAgentDeepsense()
 
 # Animation Loop
 game_reward = []

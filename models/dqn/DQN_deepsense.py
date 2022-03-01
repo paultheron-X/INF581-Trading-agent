@@ -91,7 +91,7 @@ class DQNSolver(nn.Module):
         output_fin = self.mlp_block(output_gru)
         return output_fin
 
-class DQNAgent_ds(Agent): 
+class DQNAgentDeepsense(Agent): 
     def __init__(self, **config):
         super().__init__(**config)
          
@@ -121,7 +121,7 @@ class DQNAgent_ds(Agent):
          
     def predict(self, state):
         if random.random() < self.exploration_rate:
-            return random.randint(0, self.action_space-1)
+            return random.randint(0, self.num_actions-1)
         else: 
             state = torch.from_numpy(state).float()
             state = state.unsqueeze(0)

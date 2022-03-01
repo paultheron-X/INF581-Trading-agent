@@ -1,16 +1,15 @@
-from cgi import print_form
 
 from models.agent import Agent
-from .bitcoin_env import CryptoEnv,Actions
+from gym_trading_btc.gym_anytrading.envs.bitcoin_env import Actions
 import numpy as np
 import random as rand
 
 class CryptoEnvScorer():
 
-    def __init__(self, env, agent):
+    def __init__(self, env, agent, **config):
         self.env = env
         self.agent = agent
-        self.random = Agent()
+        self.random = Agent(**config)
         
 
     def play_episodes(self, num_episodes):
@@ -36,14 +35,6 @@ class CryptoEnvScorer():
         optimal_profit = self.play_optimal()
 
         return random_profit, agent_profit, optimal_profit
-
-    def play_random(self):
-        done = False
-        reward = None
-        while not(done):
-            random_action = self.env.action_space.sample()
-            _, reward, done, _ = self.env.step(random_action)
-        return reward
 
     def play_optimal(self):
 
