@@ -73,12 +73,22 @@ class CryptoTradingEnv(gym.Env):
         #self._budget = self._start_budget
         #self._first_rendering = True
         self.history = {}
-        
-        """for state in self.signal_features[self._current_tick - self.window_size:self._current_tick]:
-            history.add(state)
-            replay_memory.add(state, 0.0, 0, False)"""
 
         return self._get_observation()
+    
+    def merge(self, model_env):
+        self._done = model_env._done
+        self._padding_tick = model_env._padding_tick
+        self._current_tick = model_env._current_tick
+        self._end_tick = model_env._end_tick
+        
+        self._total_reward = model_env._end_tick
+        self._last_reward = model_env._last_reward
+       
+        self._position_history = model_env._position_history
+        self._total_profit = model_env._total_profit 
+        
+        self.history = model_env.history
 
     def step(self, action):
         self._current_tick += 1

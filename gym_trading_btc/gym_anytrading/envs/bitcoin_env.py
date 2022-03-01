@@ -9,7 +9,6 @@ class CryptoEnv(CryptoTradingEnv):
         super().__init__(df, window_size, frame_len, start_budget)
         self.trade_fee_bid_percent = 0.01  # unit
         self._unit = 1  # units of btc
-
         self._quantity = 0  # positive quantity
 
     def _process_data(self, verbose=False):

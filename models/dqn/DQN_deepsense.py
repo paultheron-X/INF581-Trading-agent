@@ -1,6 +1,8 @@
 import copy
 import os, sys
 
+from gym_trading_btc.gym_anytrading.envs.env_scorer import CryptoEnv_scorer
+
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
@@ -31,17 +33,16 @@ class DQNSolver(nn.Module):
         num_layers = len(kernel_size)
         for i in range(num_layers):
             in_val = n_channels if i==0 else filter_size[i]
-            block = torch.nn.Sequential(
+            block = torch.nn.Sequential( 
                 torch.nn.Conv2d(in_channels = in_val, 
                             out_channels= filter_size[1], 
                             kernel_size= [1, kernel_size[1]], 
                             stride=1, 
                             padding='same'),
                 torch.nn.LeakyReLU(),
-                #torch.nn.MaxPool2d(kernel_size=kernel_size[i], stride = 1, padding=1),
-                torch.nn.Dropout(p = dropout_conv)
+                torch.nn.Dropout(p = dropout_conv),
+                #torch.nn.MaxPool2d(kernel_size=kernel_size[i], stride = (1,1), padding=(0,0))
             )
-            # ---> Add batch normalisation 
             self.convolutional_block.add_module('conv_block_'+ str(i), copy.copy(block))
 
         self.gru_block = torch.nn.Sequential(
@@ -58,7 +59,6 @@ class DQNSolver(nn.Module):
         
         self.mlp_block = torch.nn.Sequential()
         
-
         for ind in range(1, len(hidden_size_mlp)):
             block = torch.nn.Sequential(
                 nn.Linear(in_features = hidden_size_mlp[ind-1], 
@@ -171,7 +171,7 @@ class DQNAgent_ds:
          
          df_btc = pd.read_csv(dataset_path, delimiter=",")
          
-         self.env = CryptoEnv(df=df_btc, window_size=window_size, frame_len = frame_len)
+         self.env = CryptoEnv_scorer(df=df_btc, window_size=window_size, frame_len = frame_len)
          
     def predict(self, state):
         if random.random() < self.exploration_rate:
