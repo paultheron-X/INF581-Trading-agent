@@ -13,6 +13,7 @@ class CryptoEnv(CryptoTradingEnv):
         self._quantity = 0  # positive quantity
 
     def _process_data(self, verbose=False):
+        repartion_train_test = 0.8
 
         prices = self.df.loc[:, 'close'].to_numpy()
         features = self.df.loc[:,
@@ -25,20 +26,28 @@ class CryptoEnv(CryptoTradingEnv):
 
         diff = np.insert(np.diff(prices), 0, 0)
         signal_features = np.c_[features, diff]
-        
+        indice_rep = int(np.floor(prices.shape[0] * repartion_train_test))
         if verbose:
             print(f"Signal rows : {len(signal_features)}")
             print(f"Signal columns : {len(signal_features[0])}")
-            print(signal_features,end='\n\n')
-
-        return prices, signal_features
+            print(signal_features, end='\n\n')
+        train_price = prices[:indice_rep]
+        test_price = prices[indice_rep:]
+        train_features = signal_features[:indice_rep]
+        test_features = signal_features[indice_rep:]
+        return train_price, test_price, train_features, test_features
+        # return prices, signal_features
 
     def _get_local_state(self):
         return self._quantity
 
     def _calculate_reward(self, action, terminal=False):
-        next_price = self.prices[int(self._current_tick+1)]
-        current_price = self.prices[int(self._current_tick)]
+        if(self.training):
+            prices = self.train_prices
+        else:
+            prices = self.test_prices
+        next_price = prices[int(self._current_tick+1)]
+        current_price = prices[int(self._current_tick)]
         #print(f"Current price : {current_price} USD")
 
         if terminal:
@@ -56,7 +65,7 @@ class CryptoEnv(CryptoTradingEnv):
                 current_transaction_amount = -self._unit * \
                     current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
-            
+
             elif action == Actions.Sell.value:  # Sell
                 self._quantity -= 1
                 current_transaction_amount = self._unit * \
@@ -82,13 +91,17 @@ class CryptoEnv(CryptoTradingEnv):
         # il faudrait compter en benef les moindres augmentations entre 2 temps
         start_tick = self._start_tick + self._padding_tick
         end_tick = self._end_tick
-        diff_price = self.prices[start_tick + 2:end_tick + 2] - \
-            self.prices[start_tick + 1:end_tick + 1]
+        if(self.training):
+            prices = self.train_prices
+        else:
+            prices = self.test_prices
+        diff_price = prices[start_tick + 2:end_tick + 2] - \
+            prices[start_tick + 1:end_tick + 1]
         profit = 0.
         quantity = 0
         for i, d in enumerate(diff_price):
             s_diff = -1 if d < 0 else 1
             quantity += self._unit * s_diff
-            profit += self._unit * s_diff * self.prices[start_tick + i + 1]
-        profit += quantity * self._unit * self.prices[end_tick + 1]
+            profit += self._unit * s_diff * prices[start_tick + i + 1]
+        profit += quantity * self._unit * prices[end_tick + 1]
         return profit

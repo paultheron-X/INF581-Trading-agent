@@ -8,6 +8,7 @@ from enum import Enum
 
 from config_mods import *
 
+
 class Actions(Enum):
     Sell = 2
     Stay = 0
@@ -25,45 +26,49 @@ class CryptoTradingEnv(gym.Env):
         self.seed()
         self.df = df
         self.window_size = window_size
-        self.prices, self.signal_features = self._process_data()
-        self.frame_len = min(frame_len, len(self.prices) - window_size)
-        self.shape = (window_size, self.signal_features.shape[1])
-        #self.shape = (window_size*7, self.signal_features.shape[1])
+        self.train_prices, self.test_prices, self.train_signal_features, self.test_signal_features = self._process_data()
+        size_train_prices = self.train_prices.shape[0]
+        size_test_prices = self.test_prices.shape[0]
+        self.frame_len_test = size_test_prices - window_size
+        self.frame_len = min(frame_len, size_train_prices - window_size)
+        assert self.frame_len > 1
+        assert self.frame_len_test > 1
+
+        self.shape = (window_size * self.train_signal_features.shape[1],)
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float32)
-
-
         # episode
-        self._max_start_tick = len(self.prices) - self.frame_len
+        self._max_start_tick_train = size_train_prices - self.frame_len - window_size
+        self._max_start_tick_test = size_test_prices - self.frame_len_test - window_size
         self._start_tick = self.window_size
-        self._end_tick = len(self.prices) - 2
-        #self._start_budget = start_budget
+        self._end_tick = size_train_prices - 1
         self._done = None
         self._current_tick = None
         self._padding_tick = None
-        #self._last_trade_tick = None
         self._position_history = None
         self._total_reward = None
         self._last_reward = None
-        #self._budget = None
-        #self._quantity = None
-        #self._total_profit = None
-        #self._first_rendering = None
         self.history = None
-
+        self.training = True
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self): #, history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
+    # , history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
+    def reset(self, training=True):
+        self.training = training
         self._done = False
-        self._padding_tick = int(np.floor(np.random.rand() * self._max_start_tick))
+        max_start_tick = self._max_start_tick_train if training else self._max_start_tick_test
+        frame_len = self.frame_len_train if training else self.frame_len_test
+        self._padding_tick = int(
+            np.floor(np.random.rand() * max_start_tick))
+
         self._current_tick = self._start_tick + self._padding_tick
-        self._end_tick = self._current_tick + self.frame_len
+        self._end_tick = self._current_tick + frame_len - 1
         #self._last_trade_tick = self._current_tick - 1
         self._total_reward = 0.
         self._last_reward = 0.
@@ -73,12 +78,27 @@ class CryptoTradingEnv(gym.Env):
         #self._budget = self._start_budget
         #self._first_rendering = True
         self.history = {}
-        
-        """for state in self.signal_features[self._current_tick - self.window_size:self._current_tick]:
+
+        """for state in self.*_signal_features[self._current_tick - self.window_size:self._current_tick]:
             history.add(state)
             replay_memory.add(state, 0.0, 0, False)"""
 
         return self._get_observation()
+
+    def get_episode_size(self):
+        return self.frame_len if self.training else self.frame_len_test
+
+    def get_data(self):
+        X_train = self.train_signal_features[: -self.window_size]
+        X_test = self.test_signal_features[: -self.window_size]
+        Y_train = self.train_prices[self.window_size:]
+        Y_test = self.test_prices[self.window_size:]
+        for i in np.arange(1, self.window_size):
+            train_to_add = self.train_signal_features[i: -self.window_size+i]
+            test_to_add = self.test_signal_features[i: -self.window_size+i]
+            X_train = np.concatenate([X_train, train_to_add], axis=1)
+            X_test = np.concatenate([X_test, test_to_add], axis=1)
+        return X_train, Y_train, X_test, Y_test
 
     def step(self, action):
         self._current_tick += 1
@@ -87,8 +107,8 @@ class CryptoTradingEnv(gym.Env):
             # Il faut tout revendre pour tomber à zero action short ou possédée
             step_reward = self._update_profit_reward(
                 action=action, terminal=True)
-            #print(" > For this last step, Action :  " + str(action) + " | Reward : " +
-             #     str(step_reward) + " | Total profit " + str(self._total_profit))
+            # print(" > For this last step, Action :  " + str(action) + " | Reward : " +
+            #     str(step_reward) + " | Total profit " + str(self._total_profit))
         else:
             self._done = False
             step_reward = self._update_profit_reward(action)
@@ -114,13 +134,15 @@ class CryptoTradingEnv(gym.Env):
         - "open", "high", "low", "close", "Volume BTC", "Volume USD" for the last 'window-size' period
 
         Returns:
-            tuple of 2 things :
-            - (short quantity, long quantity) at first argument
             - array of array : other information for each periode, one periode par row
         """
-        #return np.concatenate((np.array(self._get_local_state()), self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
-        return np.ravel(self.signal_features[int(self._current_tick-self.window_size):int(self._current_tick)])
-    
+        if(self.training):
+            signal_features = self.train_signal_features
+        else:
+            signal_features = self.test_signal_features
+        # return np.concatenate((np.array(self._get_local_state()), signal_features[int(self._current_tick-self.window_size):int(self._current_tick)]), axis=None)
+        return np.ravel(signal_features[int(self._current_tick-self.window_size):int(self._current_tick)])
+
     def _update_history(self, info):
         if not self.history:
             self.history = {key: [] for key in info.keys()}
@@ -144,7 +166,11 @@ class CryptoTradingEnv(gym.Env):
         if self._first_rendering:
             self._first_rendering = False
             plt.cla()
-            plt.plot(self.prices)
+            if(self.training):
+                prices = self.train_prices
+            else:
+                prices = self.test_prices
+            plt.plot(prices)
             start_position = self._position_history[self._start_tick]
             _plot_position(start_position, self._start_tick)
 
@@ -160,15 +186,22 @@ class CryptoTradingEnv(gym.Env):
     def render_all(self, mode='human', window='local'):
         if window == 'local':
             start = 0
+            if(self.training):
+                prices = self.train_prices
+            else:
+                prices = self.test_prices
             prices = np.array(
-                self.prices[
+                prices[
                     self._padding_tick:
                     int(self._current_tick+1)
                 ]
             )
         elif window == 'large':
             start = self._padding_tick
-            prices = np.array(self.prices)
+            if(self.training):
+                prices = self.train_prices
+            else:
+                prices = self.test_prices
         else:
             raise NotImplementedError
 
@@ -176,17 +209,17 @@ class CryptoTradingEnv(gym.Env):
         position_history = np.array(self._position_history)
         buy_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Buy.value])
-        buy_val = np.array([self.prices[a] for a in buy_ind])
+        buy_val = np.array([prices[a] for a in buy_ind])
         plt.scatter(buy_ind, buy_val, color='green')
 
         sell_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Sell.value])
-        sell_val = np.array([self.prices[a] for a in sell_ind])
+        sell_val = np.array([prices[a] for a in sell_ind])
         plt.scatter(sell_ind, sell_val, color='red')
 
         stay_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Stay.value])
-        stay_val = np.array([self.prices[a] for a in stay_ind])
+        stay_val = np.array([prices[a] for a in stay_ind])
         plt.scatter(stay_ind, stay_val, color='yellow')
 
         plt.suptitle(
