@@ -268,8 +268,8 @@ class CryptoEnv:
 
             s_fees = - 1 if self._quantity < 0 else 1
             reward = self._quantity * self._unit * \
-                (next_price - current_price) * \
-                (1 + s_fees * self.trade_fee_bid_percent)
+                (next_price - current_price) + \
+                (1 + s_fees * self.trade_fee_bid_percent) * self._unit # Il faut ajouter et non pas multiplier : les fees ne sont que pour la dernière transaction
             return reward
 
     # Je mets dans CryptoTrading la MaJ du buget et de la quantité
