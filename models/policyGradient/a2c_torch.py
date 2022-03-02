@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import pandas as pd
 from torch.distributions import Categorical
-from copy import copy
+import copy
 
 
 
@@ -28,7 +28,7 @@ class ActorCritic(nn.Module):
         super(ActorCritic, self).__init__()
         
         self.hidden_size_mlp = kwargs["hidden_size"]
-        self.input_size = kwargs["window_size"]
+        self.input_size = kwargs["window_size"] * kwargs['num_features']
         self.num_features = kwargs["num_features"]
 
         self.critic = torch.nn.Sequential()
@@ -48,7 +48,7 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["dropout_linear"])
             )
-            self.mlp_block.add_module('critic_block_'+ str(ind), copy.copy(block))
+            self.critic.add_module('critic_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][-1], kwargs["num_actions"]),
@@ -74,11 +74,11 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["dropout_linear"])
             )
-            self.mlp_block.add_module('actor_block_'+ str(ind), copy.copy(block))
+            self.actor.add_module('actor_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
-                nn.Linear(kwargs["hidden_size"][-1], kwargs["num_actions"]),
-                nn.Softmax(dim=1)
+                nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
+                nn.Softmax(dim=0)
             )
 
         self.actor.add_module('actor_block_output', copy.copy(block_fin))
@@ -122,16 +122,19 @@ class A2CAgent(Agent):
         self._trading_lessons(previous_state, action, next_state, reward, terminal)
 
     def learn_episode(self, episode_num, **kwargs):
-        
+                
         next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
         
-        log_probs = torch.cat(log_probs)
-        returns   = torch.cat(returns).detach()
-        values    = torch.cat(values)
+        log_probs = torch.ravel(torch.tensor(self.log_probs))
+        returns   = torch.cat(returns)
+        values    = torch.cat(self.values)
 
         advantage = returns - values
+        
+        print(advantage.shape)
+        print(log_probs.shape)
 
         actor_loss  = -(log_probs * advantage.detach()).mean()
         critic_loss = advantage.pow(2).mean()
@@ -163,8 +166,10 @@ class A2CAgent(Agent):
         
         self.log_probs.append(log_prob)
         self.values.append(self.lastvalue)
-        self.rewards.append(torch.FloatTensor(reward).unsqueeze(1).to(self.device))
-        self.masks.append(torch.FloatTensor(1 - terminal).unsqueeze(1).to(self.device))
+        """self.rewards.append(torch.tensor(reward).unsqueeze(1).to(self.device))
+        self.masks.append(torch.tensor(1 - terminal).unsqueeze(1).to(self.device))"""
+        self.rewards.append(reward)
+        self.masks.append(1-terminal)
         
     def _compute_returns(self, next_value, rewards, masks, gamma=0.99):
         R = next_value

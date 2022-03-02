@@ -92,6 +92,6 @@ class CryptoEnvScorer():
             
             state = state_after
 
-        agent.learn_episode(index, kwargs = {'next_state': state_after})
+        agent.learn_episode(index, **{'next_state': state_after})
 
         return reward
