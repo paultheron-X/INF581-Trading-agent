@@ -17,7 +17,7 @@ class CryptoEnvScorer():
         random_profits = []
         agent_profits = []
         optimal_profits = []
-        iters = tqdm(range(num_episodes))
+        iters = tqdm(range(num_episodes), colour='blue')
         for i in iters:
             random_profit, agent_profit, optimal_profit = self.play_episode(i)
             random_profits.append(random_profit)
@@ -92,6 +92,6 @@ class CryptoEnvScorer():
             
             state = state_after
 
-        agent.learn_episode(index)
+        agent.learn_episode(index, kwargs = {'next_state': state_after})
 
         return reward

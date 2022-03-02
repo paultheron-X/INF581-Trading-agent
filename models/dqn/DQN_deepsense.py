@@ -135,7 +135,7 @@ class DQNAgentDeepsense(Agent):
     def remember(self, state, action, reward, next_state, terminal):
         self.memory.append(state, action, reward, next_state, terminal)
     
-    def learn_episode(self, num_episode):
+    def learn_episode(self, num_episode, **kwargs):
         if num_episode % self.replace_target == 0:
             self.update_params()
 

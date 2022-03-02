@@ -1,5 +1,4 @@
 import sys
-from pygame import init
 import torch  
 import gym
 import numpy as np  
@@ -91,10 +90,10 @@ class ActorCritic(nn.Module):
         return dist, value
    
 class A2CAgent(Agent):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **config):
+        super().__init__(**config)
         
-        self.actor_critic = ActorCritic(self.num_features, self.num_actions, kwargs['hidden_size'])
+        self.actor_critic = ActorCritic(**config)
         
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=learning_rate)
         
@@ -122,9 +121,9 @@ class A2CAgent(Agent):
     def learn(self, previous_state, action, next_state, reward, terminal):
         self._trading_lessons(previous_state, action, next_state, reward, terminal)
 
-    def learn_final(self, previous_state, action, next_state, reward, terminal):
+    def learn_episode(self, episode_num, **kwargs):
         
-        next_state = torch.FloatTensor(next_state).to(self.device)
+        next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
         
@@ -156,7 +155,7 @@ class A2CAgent(Agent):
 
     #----- Private part
     
-    def _trading_lessons(self,previous_state, action, next_state, reward, terminal):  
+    def _trading_lessons(self, previous_state, action, next_state, reward, terminal):  
         reward = 0.1*reward
         
         log_prob = self.lastdist.log_prob(action)

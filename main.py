@@ -4,6 +4,7 @@ from gym_trading_btc.gym_anytrading.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 
 from models.dqn import DQNAgentDeepsense
+from models.policyGradient import A2CAgent
 
 from config_mods import config_dqn_deepsense as config
 
@@ -11,7 +12,7 @@ from config_mods import config_dqn_deepsense as config
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
-agent = DQNAgentDeepsense(**config)
+agent = A2CAgent(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 num_episodes = config['num_episode']
