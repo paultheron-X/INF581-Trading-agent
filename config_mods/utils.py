@@ -38,7 +38,7 @@ def get_config(config_parser):
 
     fill_config_with(config, config_parser, str, 'classifier', 'OBJECTIVE')
     fill_config_with(config, config_parser, str, 'classifier', 'MODEL')
-    fill_config_with(config, config_parser, int, 'classifier', 'SEED')
+    fill_config_with(config, config_parser, int, 'classifier', 'MAX_ITER')
 
     fill_config_with(config, config_parser, int, 'dqn', 'BATCH_SIZE')
     fill_config_with(config, config_parser, int, 'dqn', 'REPLACE_TARGET')
@@ -65,11 +65,11 @@ def get_config(config_parser):
 
     fill_config_with(config, config_parser, int, 'print', 'TRAINING_STATE')
 
-    if len(config['hidden_size']) <= 0:
+    if ('hidden_size' in config) and len(config['hidden_size']) <= 0:
         raise ValueError('Hidden size parameter is empty')
-    if (config['window_size'] % config['stride'] != 0) and config['deepsense']:
+    if ('stride' in config and 'deepsense' in config) and (config['window_size'] % config['stride'] != 0) and config['deepsense']:
         raise ValueError('Stride and Window params not compatible')
-    if (config['gru_cell_size'] != config['hidden_size'][0]) and config['deepsense']:
+    if ('gru_cell_size' in config and 'deepsense' in config and 'hidden_size' in config) and (config['gru_cell_size'] != config['hidden_size'][0]) and config['deepsense']:
         raise ValueError('gru cell and hidden size not compatible')
 
     return config
