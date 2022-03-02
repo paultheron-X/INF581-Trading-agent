@@ -2,7 +2,7 @@ import gym
 import tensorflow as tf
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-from models.policyGradient.a2c import *
+from models.a2c.a2c import *
 import pandas as pd
 from gym_trading_btc.gym_anytrading.envs.bitcoin_env import *
 import matplotlib.pyplot as plt

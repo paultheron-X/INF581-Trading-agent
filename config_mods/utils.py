@@ -65,4 +65,11 @@ def get_config(config_parser):
 
     fill_config_with(config, config_parser, int, 'print', 'TRAINING_STATE')
 
+    if len(config['hidden_size']) <= 0:
+        raise ValueError('Hidden size parameter is empty')
+    if (config['window_size'] % config['stride'] != 0) and config['deepsense']:
+        raise ValueError('Stride and Window params not compatible')
+    if (config['gru_cell_size'] != config['hidden_size'][0]) and config['deepsense']:
+        raise ValueError('gru cell and hidden size not compatible')
+
     return config

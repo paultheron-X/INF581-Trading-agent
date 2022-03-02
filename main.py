@@ -4,7 +4,7 @@ from gym_trading_btc.gym_anytrading.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 
 from models.dqn import DQNAgentDeepsense
-from models.policyGradient import A2CAgent
+from models.a2c import A2CAgent
 
 from config_mods import config_dqn_deepsense as config
 
