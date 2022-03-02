@@ -56,7 +56,6 @@ class DQNSolver(nn.Module):
                 bidirectional = False 
             )
         )
-        
 
         self.mlp_block = torch.nn.Sequential()
         
@@ -161,7 +160,7 @@ class DQNAgentDeepsense(Agent):
             action = action.to(self.device)
             reward = reward.to(self.device)
             issue = issue.to(self.device)
-            term = term.to(self.device)
+            #term = term.to(self.device)
             
             pred_next = self.dqn_target(issue)
             pred_eval = self.dqn_validation(issue).argmax(1)
