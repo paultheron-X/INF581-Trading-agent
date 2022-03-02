@@ -17,6 +17,9 @@ class Agent:
 
     def learn(self, previous_state, action, next_state, reward, terminal):
         return # Random agent doesn't do anything
+    
+    def learn_final(self, previous_state, action, next_state, reward, terminal):
+        return # Random agent doesn't do anything paul
 
     def print_infos(self):
         print("Random agent")

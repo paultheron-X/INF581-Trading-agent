@@ -56,7 +56,6 @@ class DQNSolver(nn.Module):
                 bidirectional = False 
             )
         )
-        
 
         self.mlp_block = torch.nn.Sequential()
         

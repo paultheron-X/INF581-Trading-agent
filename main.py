@@ -12,7 +12,7 @@ df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
 agent = DQNAgentDeepsense(**config)
-scorer = CryptoEnvScorer(env,agent, **config)
+scorer = CryptoEnvScorer(env, agent, **config)
 
 num_episodes = config['num_episode']
 
