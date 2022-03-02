@@ -1,11 +1,9 @@
 import numpy as np
-from torch import threshold
 import matplotlib.pyplot as plt
 from gym import spaces
 from gym.utils import seeding
 from enum import Enum
-
-from config_mods import *
+import pandas as pd
 
 class Actions(Enum):
     Sell = 2
@@ -16,23 +14,28 @@ class CryptoEnv:
     
     metadata = {'render.modes': ['human']}
        
-    def __init__(self, df, window_size, frame_len):
+    def __init__(self, **config):
+
+        self.window_size = config["window_size"]
+        self.frame_len = config["frame_len"]
+        df = pd.read_csv(config["df_path"], delimiter=",")
+
         assert df.ndim == 2
-        assert df.shape[0] > window_size
+        assert df.shape[0] >  self.window_size
         
         
-        self.trade_fee_bid_percent = 0.01  # unit
+        self.trade_fee_bid_percent = 0.00  # unit
         self._unit = 1  # units of btc
         self._quantity = 0  # positive quantity
         
         
         self.seed()
         self.df = df
-        self.window_size = window_size
+        self.window_size =  self.window_size
         self.prices, self.signal_features = self._process_data()
-        self.frame_len = min(frame_len, len(self.prices) - window_size)
+        self.frame_len = min(self.frame_len, len(self.prices) -  self.window_size)
         #self.shape = (window_size, self.signal_features.shape[1])
-        self.shape = (window_size*7, self.signal_features.shape[1])
+        self.shape = (self.window_size*7, self.signal_features.shape[1])
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
@@ -71,7 +74,7 @@ class CryptoEnv:
         #self._last_trade_tick = self._current_tick - 1
         self._total_reward = 0.
         self._last_reward = 0.
-        #self._quantity = 0.
+        self._quantity = 0.
         self._position_history = [Actions.Stay] * self._start_tick
         self._total_profit = 0  # unit
         #self._budget = self._start_budget
@@ -80,19 +83,11 @@ class CryptoEnv:
 
         return self._get_observation()
     
-    def merge(self, model_env):
-        self._done = model_env._done
-        self._padding_tick = model_env._padding_tick
-        self._current_tick = model_env._current_tick
-        self._end_tick = model_env._end_tick
-        
-        self._total_reward = model_env._end_tick
-        self._last_reward = model_env._last_reward
-       
-        self._position_history = model_env._position_history
-        self._total_profit = model_env._total_profit 
-        
-        self.history = model_env.history
+    def reset_to(self, _padding_tick):
+        self.reset()
+        self._padding_tick = _padding_tick
+        self._current_tick = self._start_tick + self._padding_tick
+        self._end_tick = self._current_tick + self.frame_len
 
     def step(self, action):
         self._current_tick += 1
