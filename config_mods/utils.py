@@ -1,50 +1,68 @@
 from configparser import ConfigParser
 from os.path import join
-import os, sys
+import os
+import sys
 import json
 
 
-def get_config_parser(filename = 'dqn_base.cfg'):
+def get_config_parser(filename='dqn_base.cfg'):
     config = ConfigParser(allow_no_value=True)
     config.read(os.getcwd() + '/config_mods/' + filename)
     return config
 
+
+def fill_config_with(config, config_parser, modifier, section, option):
+    if config_parser.has_section(section) and config_parser.has_option(section, option):
+        config[option.lower()] = modifier(config_parser.get(section, option))
+    return config
+
+
 def get_config(config_parser):
     config = {}
-    
-    config['df_path'] = os.getcwd() + '/gym_trading_btc/gym_anytrading/datasets/data/' + config_parser.get('dataset', 'DF_NAME')
-    config['num_features'] = int(config_parser.get('dataset', 'NUM_FEATURES'))
-    
-    config['num_actions'] = int(config_parser.get('agent', 'NUM_ACTIONS'))
-    config['window_size'] = int(config_parser.get('agent', 'WINDOW_SIZE'))
-    config['frame_len'] = int(config_parser.get('agent', 'FRAME_LEN'))
-    config['num_episode'] = int(config_parser.get('agent', 'NUM_EPISODE'))
-    
-    config['max_mem_size'] = int(config_parser.get('agent', 'MAX_MEM_SIZE'))
-    
-    config['exploration_rate'] = float(config_parser.get('agent', 'EXPLORATION_RATE'))
-    config['exploration_decay'] = float(config_parser.get('agent', 'EXPLORATION_DECAY'))
-    config['exploration_min'] = float(config_parser.get('agent', 'EXPLORATION_MIN'))
 
-    
-    config['batch_size'] = int(config_parser.get('dqn', 'BATCH_SIZE'))
-    config['replace_target'] = int(config_parser.get('dqn', 'REPLACE_TARGET'))
-    
-    config['lr'] = float(config_parser.get('dqn', 'LR'))
-    config['gamma'] = float(config_parser.get('dqn', 'GAMMA'))
-    config['hidden_size'] = json.loads(config_parser.get('dqn', 'HIDDEN_SIZE')) 
-    
-    config['dropout_linear'] = float(config_parser.get('dropout', 'LINEAR_DROPOUT'))
-    config['dropout_conv'] = float(config_parser.get('dropout', 'CONV_DROPOUT'))
-    config['dropout_gru'] = float(config_parser.get('dropout', 'GRU_DROPOUT'))
+    config['df_path'] = os.getcwd() + '/gym_trading_btc/gym_anytrading/datasets/data/' + \
+        config_parser.get('dataset', 'DF_NAME')
 
-    config['filter_sizes'] = json.loads(config_parser.get('convolution', 'FILTER_SIZES'))
-    config['kernel_sizes'] = json.loads(config_parser.get('convolution', 'KERNEL_SIZES'))
-    config['padding'] = (config_parser.get('convolution', 'PADDING'))
-    config['stride'] = int(config_parser.get('convolution', 'STRIDE'))
-    
-    config['gru_cell_size'] = int(config_parser.get('gru', 'GRU_CELL_SIZE'))
-    config['gru_num_cell'] = int(config_parser.get('gru', 'GRU_NUM_CELLS'))
+    fill_config_with(config, config_parser, int, 'dataset', 'NUM_FEATURES')
 
-    config['training_state'] = int(config_parser.get('print', 'TRAINING_STATE'))
+    fill_config_with(config, config_parser, int, 'agent', 'NUM_ACTIONS')
+    fill_config_with(config, config_parser, int, 'agent', 'WINDOW_SIZE')
+    fill_config_with(config, config_parser, int, 'agent', 'FRAME_LEN')
+    fill_config_with(config, config_parser, int, 'agent', 'NUM_EPISODE')
+    fill_config_with(config, config_parser, int, 'agent', 'MAX_MEM_SIZE')
+
+    fill_config_with(config, config_parser, float, 'agent', 'EXPLORATION_RATE')
+    fill_config_with(config, config_parser, float,
+                     'agent', 'EXPLORATION_DECAY')
+    fill_config_with(config, config_parser, float, 'agent', 'EXPLORATION_MIN')
+
+    fill_config_with(config, config_parser, str, 'classifier', 'OBJECTIVE')
+    fill_config_with(config, config_parser, str, 'classifier', 'MODEL')
+    fill_config_with(config, config_parser, int, 'classifier', 'SEED')
+
+    fill_config_with(config, config_parser, int, 'dqn', 'BATCH_SIZE')
+    fill_config_with(config, config_parser, int, 'dqn', 'REPLACE_TARGET')
+
+    fill_config_with(config, config_parser, float, 'dqn', 'LR')
+    fill_config_with(config, config_parser, float, 'dqn', 'GAMMA')
+
+    fill_config_with(config, config_parser, json.loads, 'dqn', 'HIDDEN_SIZE')
+
+    fill_config_with(config, config_parser, float, 'dropout', 'LINEAR_DROPOUT')
+    fill_config_with(config, config_parser, float, 'dropout', 'CONV_DROPOUT')
+    fill_config_with(config, config_parser, float, 'dropout', 'GRU_DROPOUT')
+
+    fill_config_with(config, config_parser, json.loads,
+                     'convolution', 'FILTER_SIZES')
+    fill_config_with(config, config_parser, json.loads,
+                     'convolution', 'KERNEL_SIZES')
+
+    fill_config_with(config, config_parser, str, 'convolution', 'PADDING')
+    fill_config_with(config, config_parser, int, 'convolution', 'STRIDE')
+
+    fill_config_with(config, config_parser, int, 'gru', 'GRU_CELL_SIZE')
+    fill_config_with(config, config_parser, int, 'gru', 'GRU_NUM_CELLS')
+
+    fill_config_with(config, config_parser, int, 'print', 'TRAINING_STATE')
+
     return config
