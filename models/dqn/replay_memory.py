@@ -12,7 +12,6 @@ class Memory():
         self.max_size = max_mem_size
         
     def append(self, state, action, reward, issue, terminal):
-        
         self._size = min(self.size +1, self.max_size)
         
         self.memory.append([state, action, reward, issue, terminal])
@@ -26,8 +25,6 @@ class Memory():
         issue_batch = []
         terminal_batch = []
         
-        
-        
         for i in range(batch_size):
             state_batch.append(batch[i][0])
             action_batch.append(batch[i][1])
@@ -40,6 +37,7 @@ class Memory():
         reward_batch = torch.tensor(reward_batch).float()
         issue_batch = torch.tensor(np.array(issue_batch)).float()
         terminal_batch = torch.tensor(terminal_batch).float()
+
         
         return state_batch, action_batch, reward_batch, issue_batch, terminal_batch
     

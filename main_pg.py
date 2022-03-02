@@ -1,5 +1,5 @@
 import gym
-from models.policyGradient.policygradient import *
+from models.a2c.policygradient import *
 from gym_trading_btc.gym_anytrading.envs.bitcoin_env import *
 import matplotlib.pyplot as plt
 import pandas as pd

@@ -1,7 +1,7 @@
 import copy
 import os, sys
 
-from gym_trading_btc.gym_anytrading.envs.env_scorer import CryptoEnv_scorer
+from models.agent import Agent
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
@@ -12,65 +12,65 @@ import torch.nn as nn
 import numpy as np
 import random
 import pickle 
-from collections import deque
-import pandas as pd
 
 from gym_trading_btc.gym_anytrading.envs import *
-
-from config_mods import config_dqn_deepsense as config 
 
 from .replay_memory import Memory
 
 class DQNSolver(nn.Module):
-    def __init__(self, input_size, n_channels, n_actions, dropout, hidden_size_mlp, filter_size, kernel_size, dropout_conv, batch_size, stride, gru_cell_size, gru_num_cells, dropout_gru) -> None:
+    def __init__(self, **kwargs):
         super(DQNSolver, self).__init__()
-        self.batch_size = batch_size
-        self.n_channels = n_channels
-        self.input_size = input_size
-        self.stride = stride 
-        
+
+        self.batch_size = kwargs["batch_size"]
+        self.n_channels = kwargs["num_features"]
+        self.input_size = kwargs["window_size"]
+        self.stride = kwargs["stride"]
+        self.filter_size = kwargs["filter_sizes"]
+        self.kernel_size = kwargs["kernel_sizes"]
+        self.hidden_size_mlp = kwargs["hidden_size"]
+
         self.convolutional_block = torch.nn.Sequential()
-        num_layers = len(kernel_size)
+        num_layers = len(kwargs["kernel_sizes"])
         for i in range(num_layers):
-            in_val = n_channels if i==0 else filter_size[i]
+            in_val = self.n_channels if i==0 else self.filter_size[i]
             block = torch.nn.Sequential( 
                 torch.nn.Conv2d(in_channels = in_val, 
-                            out_channels= filter_size[1], 
-                            kernel_size= [1, kernel_size[1]], 
+                            out_channels= self.filter_size[1], 
+                            kernel_size= [1, self.kernel_size[1]], 
                             stride=1, 
                             padding='same'),
                 torch.nn.LeakyReLU(),
-                torch.nn.Dropout(p = dropout_conv),
+                torch.nn.Dropout(p = kwargs["dropout_conv"]),
                 #torch.nn.MaxPool2d(kernel_size=kernel_size[i], stride = (1,1), padding=(0,0))
             )
             self.convolutional_block.add_module('conv_block_'+ str(i), copy.copy(block))
 
         self.gru_block = torch.nn.Sequential(
             torch.nn.GRU(
-                input_size = int(input_size*filter_size[-1]/stride),
-                hidden_size = gru_cell_size,
-                num_layers = gru_num_cells, 
-                dropout = dropout_gru, 
+                input_size = int(self.input_size*self.filter_size[-1]/self.stride),
+                hidden_size = kwargs["gru_cell_size"],
+                num_layers =  kwargs["gru_num_cell"], 
+                dropout =  kwargs["dropout_gru"], 
                 bias = True,
                 batch_first = True,
                 bidirectional = False 
             )
         )
-        
+
         self.mlp_block = torch.nn.Sequential()
         
-        for ind in range(1, len(hidden_size_mlp)):
+        for ind in range(1, len(self.hidden_size_mlp)):
             block = torch.nn.Sequential(
-                nn.Linear(in_features = hidden_size_mlp[ind-1], 
-                          out_features = hidden_size_mlp[ind]),
+                nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
+                          out_features =self.hidden_size_mlp[ind]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = dropout)
+                nn.Dropout(p = kwargs["dropout_linear"])
             )
             self.mlp_block.add_module('mlp_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
-                nn.Linear(hidden_size_mlp[-1], n_actions),
-                nn.Softmax()
+                nn.Linear(kwargs["hidden_size"][-1], kwargs["num_actions"]),
+                nn.Softmax(dim =1)
             )
         
         self.mlp_block.add_module('mlp_block_output', copy.copy(block_fin))
@@ -90,120 +90,61 @@ class DQNSolver(nn.Module):
         output_fin = self.mlp_block(output_gru)
         return output_fin
 
-class DQNAgent_ds: 
-    def __init__(self,  window_size =  config['window_size'],
-                        num_features = config['num_features'],
-                        action_space = config['num_actions'], 
-                        dropout = config['dropout_linear'], 
-                        hidden_size = config['hidden_size'],  
-                        lr = config['lr'], 
-                        gamma=config['gamma'], 
-                        max_mem_size = config['max_mem_size'],
-                        exploration_rate = config['exploration_rate'], 
-                        exploration_decay = config['exploration_decay'],
-                        exploration_min = config['exploration_min'], 
-                        batch_size = config['batch_size'],
-                        frame_len = config['frame_len'],
-                        dataset_path = config['df_path'],
-                        filter_size = config['filter_sizes'],
-                        kernel_size = config['kernel_sizes'],
-                        dropout_conv = config['dropout_conv'],
-                        stride = config['stride'],
-                        gru_cell_size = config['gru_cell_size'],
-                        gru_num_cells = config['gru_num_cell'], 
-                        dropout_gru = config['dropout_gru']
-                        ) -> None:
+class DQNAgentDeepsense(Agent): 
+    def __init__(self, **config):
+        super().__init__(**config)
          
-         
-         self.state_space = window_size*num_features
-         self.action_space = action_space
-         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-         
-         self.dqn_validation = DQNSolver(
-                            input_size = window_size, 
-                            n_channels = num_features,
-                            n_actions= action_space,
-                            dropout= dropout,
-                            hidden_size_mlp=hidden_size, 
-                            filter_size = filter_size,
-                            kernel_size = kernel_size,
-                            dropout_conv = dropout_conv,
-                            batch_size = batch_size,
-                            stride = stride, 
-                            gru_cell_size = gru_cell_size,
-                            gru_num_cells = gru_num_cells,
-                            dropout_gru = dropout_gru
-                            ).to(self.device)
-         
-         self.dqn_target = DQNSolver(
-                            input_size = window_size, 
-                            n_channels = num_features,
-                            n_actions = action_space,
-                            dropout = dropout,
-                            hidden_size_mlp = hidden_size, 
-                            filter_size = filter_size,
-                            kernel_size = kernel_size,
-                            dropout_conv = dropout_conv, 
-                            batch_size = batch_size,
-                            stride = stride,
-                            gru_cell_size = gru_cell_size,
-                            gru_num_cells = gru_num_cells,
-                            dropout_gru = dropout_gru
-                            ).to(self.device)
-         
-         self.lr = lr
-         
-         self.optimizer = torch.optim.RMSprop(self.dqn_validation.parameters(), lr = self.lr)
-         self.loss = nn.HuberLoss().to(self.device)
-         self.gamma = gamma
-         
-         self.memory_size = max_mem_size
-         self.exploration_rate = exploration_rate      # To preserve from getting stuck
-         self.exploration_decay = exploration_decay
-         self.exploration_min = exploration_min
-         
-         self.memory = Memory(max_mem_size)
-         
-         self.current_position = 0
-         self.is_full = 0
-         
-         self.batch_size = batch_size
-         
-         df_btc = pd.read_csv(dataset_path, delimiter=",")
-         
-         self.env = CryptoEnv_scorer(df=df_btc, window_size=window_size, frame_len = frame_len)
+        #self.device = "cpu"
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.dqn_validation = DQNSolver(**config).to(self.device)
+        self.dqn_target = DQNSolver(**config).to(self.device)
+        
+        self.lr = config["lr"]
+        
+        self.optimizer = torch.optim.RMSprop(self.dqn_validation.parameters(), lr = self.lr)
+        self.loss = nn.HuberLoss().to(self.device)
+        self.gamma = config["gamma"]
+        
+        self.memory_size = config["max_mem_size"]
+        self.exploration_rate = config["exploration_rate"]      # To preserve from getting stuck
+        self.exploration_decay =config["exploration_decay"] 
+        self.exploration_min = config["exploration_min"]
+        self.replace_target = config["replace_target"]
+        
+        self.memory = Memory(self.memory_size)
+        
+        self.current_position = 0
+        self.is_full = 0
+        
+        self.batch_size = config["batch_size"]
          
     def predict(self, state):
         if random.random() < self.exploration_rate:
-            return random.randint(0, self.action_space-1)
+            return random.randint(0, self.num_actions-1)
         else: 
             state = torch.from_numpy(state).float()
             state = state.unsqueeze(0)
             action = self.dqn_validation(state.to(self.device)).argmax().unsqueeze(0).unsqueeze(0).cpu()
-            return action.item()  
-        
-    def act(self, action):
-        observation, reward, done, info = self.env.step(action)
-        return observation, reward, action, done
+            return action.item()
     
-    def remember(self, state, action, reward, issue, terminal):
-        self.memory.append(state, action, reward, issue, terminal)
-    
+    def learn(self, previous_state, action, next_state, reward, terminal):
+        self.remember(previous_state, action, reward, next_state, terminal)
+        self.trading_lessons()
 
-    def print_infos(self, action, target, current):
-        if (self.current_position % 100 ==0):
-            print("\n------------Training on " + self.device + " epoch " + str(self.current_position) + " -------------")
-            print("exploration_rate", self.exploration_rate)
-            #print("Prediction for this step", action)
-            #print("Target for this step", action)
-            #print("Current for this step", action)
+    def remember(self, state, action, reward, next_state, terminal):
+        self.memory.append(state, action, reward, next_state, terminal)
     
-    def get_observation(self):
-        return self.env._get_observation()
-    
-    def reset(self):
-        observation = self.env.reset()
-        return observation, False
+    def learn_episode(self, num_episode, **kwargs):
+        if num_episode % self.replace_target == 0:
+            self.update_params()
+
+    def print_infos(self):
+        print("\n------------ Deepsense agent training on " + self.device + " epoch " + str(self.current_position) + " -------------")
+        print("exploration_rate", self.exploration_rate)
+        #print("Prediction for this step", action)
+        #print("Target for this step", action)
+        #print("Current for this step", action)
        
     def trading_lessons(self):
         
@@ -219,7 +160,7 @@ class DQNAgent_ds:
             action = action.to(self.device)
             reward = reward.to(self.device)
             issue = issue.to(self.device)
-            term = term.to(self.device)
+            #term = term.to(self.device)
             
             pred_next = self.dqn_target(issue)
             pred_eval = self.dqn_validation(issue).argmax(1)
