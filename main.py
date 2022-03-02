@@ -15,9 +15,15 @@ env = CryptoEnv(**config)
 agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
+if config['load']:
+    agent.load_model(**config)
+
 num_episodes = config['num_episode']
 
 random_profit, agent_profit, optimal_profit = scorer.play_episodes(num_episodes)
+
+if config['save']:
+    agent.save_model(**config)
 
 def plot_asolute(random_profit, agent_profit, optimal_profit, title='figs/asolute-agent-profit.png'):
     plt.plot(range(num_episodes), random_profit, label="Random profit")

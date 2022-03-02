@@ -1,4 +1,6 @@
 import pickle
+import json
+from matplotlib.font_manager import json_dump
 from .replay_memory import Memory
 from gym_trading_btc.gym_anytrading.envs import *
 import random
@@ -127,6 +129,8 @@ class DQNAgentDeepsense(Agent):
 
         self.batch_size = config["batch_size"]
 
+    # ---- Override public functions, inherited from class Agent
+    
     def predict(self, state):
         if random.random() < self.exploration_rate:
             return random.randint(0, self.num_actions-1)
@@ -138,25 +142,40 @@ class DQNAgentDeepsense(Agent):
             return action.item()
 
     def learn(self, previous_state, action, next_state, reward, terminal):
-        self.remember(previous_state, action, reward, next_state, terminal)
-        self.trading_lessons()
-
-    def remember(self, state, action, reward, next_state, terminal):
-        self.memory.append(state, action, reward, next_state, terminal)
+        self._remember(previous_state, action, reward, next_state, terminal)
+        self._trading_lessons()
 
     def learn_episode(self, num_episode, **kwargs):
         if num_episode % self.replace_target == 0:
-            self.update_params()
+            self._update_params()
 
     def print_infos(self):
-        print("\n------------ Deepsense agent training on " + self.device +
-              " epoch " + str(self.current_position) + " -------------")
-        print("exploration_rate", self.exploration_rate)
-        #print("Prediction for this step", action)
-        #print("Target for this step", action)
-        #print("Current for this step", action)
+        print("DQNDeepsense agent")
+        
+    def load_model(self, **kwargs):
+        path = kwargs['save_path']
+        self.dqn_validation.load_state_dict(torch.load(path + "/DQNDeepsense.pt"))
+        self.dqn_target.load_state_dict(torch.load(path + "/DQNDeepsense.pt"))
+        file_memory = open(path + "/memory.pkl", 'rb') 
+        self.memory = pickle.load(file_memory)
+        print("> Starting simulation, Deepsense model successfully loaded")
+    
+    def save_model(self, **kwargs):
+        path = kwargs['save_path']
+        torch.save(self.dqn_validation.state_dict(), path + "/DQNDeepsense.pt")  
+        with open(path + "/memory.pkl", "wb") as f:
+            pickle.dump(self.memory, f)
+        with open(path + "/model_config.txt", "w") as f:
+            f.write(json.dumps(kwargs, indent = 6))
+        print("> Ending simulation, Deepsense model successfully saved")
+    
+    #---------------- Private functions -------
+    
+    
+    def _remember(self, state, action, reward, next_state, terminal):
+        self.memory.append(state, action, reward, next_state, terminal)
 
-    def trading_lessons(self):
+    def _trading_lessons(self):
 
         # compute a random batch from the memory before and pass it, then retrop
         if self.memory.size > self.batch_size:
@@ -205,16 +224,8 @@ class DQNAgentDeepsense(Agent):
             self.exploration_rate = max(
                 self.exploration_rate, self.exploration_min)
 
-    def save(self, name):
-        with open(name + "/deque.pkl", "wb") as f:
-            pickle.dump(self.memory, f)
-        with open(name + "/ending_position.pkl", "wb") as f:
-            pickle.dump(self.current_position, f)
-        with open(name + "/num_in_queue.pkl", "wb") as f:
-            pickle.dump(self.is_full, f)
-
-    def update_params(self):
+    def _update_params(self):
         self.dqn_target.load_state_dict(self.dqn_validation.state_dict())
 
-    def get_exploration(self):
-        return self.exploration_rate
+
+    

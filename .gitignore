@@ -148,3 +148,7 @@ build/
 .json
 
 *.pyc
+
+*.pkl
+*.txt
+*.pt

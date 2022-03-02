@@ -106,7 +106,7 @@ class A2CAgent(Agent):
         
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    #Override the previous functions from Agent
+    #------------- Override the inheritance functions from Agent
     
     def predict(self, state):        
         state = torch.FloatTensor(state).to(self.device)
@@ -152,6 +152,12 @@ class A2CAgent(Agent):
     
     def print_infos(self):
         print("A2C agent")
+    
+    def load_model(self, **kwargs):
+        return super().load_model(**kwargs)
+    
+    def save_model(self, **kwargs):
+        return super().save_model(**kwargs)
     
 
     #----- Private part
