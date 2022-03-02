@@ -11,7 +11,6 @@ class Actions(Enum):
     Stay = 0
     Buy = 1
 
-
 class CryptoEnv:
 
     metadata = {'render.modes': ['human']}
@@ -25,8 +24,8 @@ class CryptoEnv:
         assert df.ndim == 2
         assert df.shape[0] > self.window_size
 
-        self.trade_fee_bid_percent = 0.00  # unit
-        self._unit = 1  # units of btc
+        self.trade_fee_bid_percent = 0.0  # unit
+        self.unit = 1  # units of btc
         self._quantity = 0  # positive quantity
 
         self.seed()
@@ -284,7 +283,7 @@ class CryptoEnv:
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
             s_fees = 1 if self._quantity < 0 else -1
-            transation_amount = self._quantity * self._unit * current_price * \
+            transation_amount = self._quantity * self.unit * current_price * \
                 (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can
             self._total_profit += transation_amount
             reward = self._total_profit
@@ -293,20 +292,20 @@ class CryptoEnv:
         else:
             if action == Actions.Buy.value:  # Buy
                 self._quantity += 1
-                current_transaction_amount = -self._unit * \
+                current_transaction_amount = -self.unit * \
                     current_price * (1+self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
 
             elif action == Actions.Sell.value:  # Sell
                 self._quantity -= 1
-                current_transaction_amount = self._unit * \
+                current_transaction_amount = self.unit * \
                     current_price * (1-self.trade_fee_bid_percent)
                 self._total_profit += current_transaction_amount
 
             s_fees = 0 if action == Actions.Stay.value else 1
-            reward = self._quantity * self._unit * \
+            reward = self._quantity * self.unit * \
                 (next_price - current_price) + \
-                s_fees * self.trade_fee_bid_percent * self._unit * \
+                s_fees * self.trade_fee_bid_percent * self.unit * \
                 current_price  # On n'ajoute les fees que lorsque l'on sell ou buy
             return reward
 
