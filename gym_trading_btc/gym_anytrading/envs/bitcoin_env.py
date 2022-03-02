@@ -63,6 +63,7 @@ class CryptoEnv:
         self._last_reward = None
         self._first_rendering = True
         self.training = True
+        self.prices = self.train_prices
         self.history = None
 
     def seed(self, seed=None):
@@ -72,6 +73,10 @@ class CryptoEnv:
     # , history = History(logger, config), replay_memory = ReplayMemory(logger, config) ):
     def reset(self, training=True):
         self.training = training
+        if training:
+            self.prices = self.train_prices
+        else:
+            self.prices = self.test_prices
         self._done = False
         max_start_tick = self._max_start_tick_train if training else self._max_start_tick_test
         frame_len = self.frame_len if training else self.frame_len_test
@@ -179,11 +184,7 @@ class CryptoEnv:
         if self._first_rendering:
             self._first_rendering = False
             plt.cla()
-            if(self.training):
-                prices = self.train_prices
-            else:
-                prices = self.test_prices
-            plt.plot(prices)
+            plt.plot(self.prices)
             start_position = self._position_history[self._start_tick]
             _plot_position(start_position, self._start_tick)
 
@@ -199,10 +200,7 @@ class CryptoEnv:
     def render_all(self, mode='human', window='local'):
         if window == 'local':
             start = 0
-            if(self.training):
-                prices = self.train_prices
-            else:
-                prices = self.test_prices
+            prices = self.prices
             prices = np.array(
                 prices[
                     self._padding_tick:
@@ -211,10 +209,7 @@ class CryptoEnv:
             )
         elif window == 'large':
             start = self._padding_tick
-            if(self.training):
-                prices = self.train_prices
-            else:
-                prices = self.test_prices
+            prices = self.prices
         else:
             raise NotImplementedError
 
@@ -282,12 +277,8 @@ class CryptoEnv:
         return self._quantity
 
     def _calculate_reward(self, action, terminal=False):
-        if(self.training):
-            prices = self.train_prices
-        else:
-            prices = self.test_prices
-        next_price = prices[int(self._current_tick+1)]
-        current_price = prices[int(self._current_tick)]
+        next_price = self.prices[int(self._current_tick+1)]
+        current_price = self.prices[int(self._current_tick)]
         # print(f"Current price : {current_price} USD")
 
         if terminal:
@@ -332,12 +323,8 @@ class CryptoEnv:
         Returns:
             tuple: same return than step function fot this precise 'best' action
         """
-        if(self.training):
-            prices = self.train_prices
-        else:
-            prices = self.test_prices
-        next_price = prices[int(self._current_tick+1)]
-        current_price = prices[int(self._current_tick)]
+        next_price = self.prices[int(self._current_tick+1)]
+        current_price = self.prices[int(self._current_tick)]
         threshold = 0
 
         if (next_price/current_price) < (1 - threshold):
