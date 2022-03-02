@@ -18,7 +18,7 @@ from gym_trading_btc.gym_anytrading.envs import *
 from .replay_memory import Memory
 
 class DQNSolver(nn.Module):
-    def __init__(self, **kwargs):#input_size, n_channels, n_actions, dropout, hidden_size_mlp, filter_size, kernel_size, dropout_conv, batch_size, stride, gru_cell_size, gru_num_cells, dropout_gru) -> None:
+    def __init__(self, **kwargs):
         super(DQNSolver, self).__init__()
 
         self.batch_size = kwargs["batch_size"]
@@ -111,6 +111,7 @@ class DQNAgentDeepsense(Agent):
         self.exploration_rate = config["exploration_rate"]      # To preserve from getting stuck
         self.exploration_decay =config["exploration_decay"] 
         self.exploration_min = config["exploration_min"]
+        self.replace_target = config["replace_target"]
         
         self.memory = Memory(self.memory_size)
         
@@ -135,6 +136,9 @@ class DQNAgentDeepsense(Agent):
     def remember(self, state, action, reward, next_state, terminal):
         self.memory.append(state, action, reward, next_state, terminal)
     
+    def learn_episode(self, num_episode):
+        if num_episode % self.replace_target == 0:
+            self.update_params()
 
     def print_infos(self):
         print("\n------------ Deepsense agent training on " + self.device + " epoch " + str(self.current_position) + " -------------")

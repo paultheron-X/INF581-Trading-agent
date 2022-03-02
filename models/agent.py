@@ -18,5 +18,8 @@ class Agent:
     def learn(self, previous_state, action, next_state, reward, terminal):
         return # Random agent doesn't do anything
 
+    def learn_episode(self, episode_num):
+        return
+
     def print_infos(self):
         print("Random agent")

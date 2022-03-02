@@ -3,6 +3,7 @@ from models.agent import Agent
 from gym_trading_btc.gym_anytrading.envs.bitcoin_env import Actions
 import numpy as np
 import random as rand
+from tqdm import tqdm
 
 class CryptoEnvScorer():
 
@@ -16,21 +17,24 @@ class CryptoEnvScorer():
         random_profits = []
         agent_profits = []
         optimal_profits = []
-        for i in range(num_episodes):
-            random_profit, agent_profit, optimal_profit = self.play_episode()
+        iters = tqdm(range(num_episodes))
+        for i in iters:
+            random_profit, agent_profit, optimal_profit = self.play_episode(i)
             random_profits.append(random_profit)
             agent_profits.append(agent_profit)
             optimal_profits.append(optimal_profit)
-            print(f"> Episode {i + 1:5}  | random  {random_profit:10.2f}  | agent  {agent_profit:10.2f}  | optimal  {optimal_profit:10.2f}")
+            if (i % 100 == 0):
+                iters.set_description(f"> Episode {i:5}  | random  {random_profit:10.2f}  | agent  {agent_profit:10.2f}  | optimal  {optimal_profit:10.2f}  | score  {100 * float(agent_profit - random_profit) / (optimal_profit - random_profit):10.2f}%")
+        
         return random_profits, agent_profits, optimal_profits
 
 
-    def play_episode(self):
+    def play_episode(self, index):
         self.env.reset()
         tick = self.env._padding_tick
-        random_profit = self.play_agent(self.random)
+        random_profit = self.play_agent(self.random, index)
         self.env.reset_to(tick)
-        agent_profit = self.play_agent(self.agent)
+        agent_profit = self.play_agent(self.agent, index)
         self.env.reset_to(tick)
         optimal_profit = self.play_optimal()
 
@@ -75,7 +79,7 @@ class CryptoEnvScorer():
 
         return profit
 
-    def play_agent(self, agent):
+    def play_agent(self, agent, index):
 
         state = self.env._get_observation()
         terminal = False
@@ -83,9 +87,11 @@ class CryptoEnvScorer():
         while not terminal:
 
             action = agent.predict(state)
-            state_after, reward, action, terminal = self.env.step(action)   
+            state_after, reward, terminal, _ = self.env.step(action)   
             agent.learn(state, action, state_after, reward, terminal)
-
+            
             state = state_after
+
+        agent.learn_episode(index)
 
         return reward
