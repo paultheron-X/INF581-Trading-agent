@@ -15,8 +15,6 @@ import copy
 
 from models import Agent
 # hyperparameters
-hidden_size = 256
-learning_rate = 3e-4
 
 # Constants
 GAMMA = 0.99
@@ -78,7 +76,7 @@ class ActorCritic(nn.Module):
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
-                nn.Softmax(dim=0)
+                nn.Softmax(dim=1)
             )
 
         self.actor.add_module('actor_block_output', copy.copy(block_fin))
@@ -95,7 +93,7 @@ class A2CAgent(Agent):
         
         self.actor_critic = ActorCritic(**config)
         
-        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=config['lr'])
         
         self.log_probs = []
         self.values    = []
