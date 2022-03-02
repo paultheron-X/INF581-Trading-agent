@@ -26,7 +26,7 @@ def get_config(config_parser):
     config['exploration_decay'] = float(config_parser.get('agent', 'EXPLORATION_DECAY'))
     config['exploration_min'] = float(config_parser.get('agent', 'EXPLORATION_MIN'))
 
-    
+    config['deepsense'] = int(config_parser.get('dqn', 'DEEPSENSE'))
     config['batch_size'] = int(config_parser.get('dqn', 'BATCH_SIZE'))
     config['replace_target'] = int(config_parser.get('dqn', 'REPLACE_TARGET'))
     
@@ -47,4 +47,11 @@ def get_config(config_parser):
     config['gru_num_cell'] = int(config_parser.get('gru', 'GRU_NUM_CELLS'))
 
     config['training_state'] = int(config_parser.get('print', 'TRAINING_STATE'))
+    
+    if len(config['hidden_size']) <=0:
+        raise ValueError('Hidden size parameter is empty')
+    if (config['window_size'] % config['stride'] !=0) and config['deepsense'] :
+        raise ValueError('Stride and Window params not compatible')
+    if (config['gru_cell_size'] != config['hidden_size'][0]) and config['deepsense'] :
+        raise ValueError('gru cell and hidden size not compatible')
     return config
