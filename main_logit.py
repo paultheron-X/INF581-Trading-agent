@@ -5,7 +5,7 @@ from analytics.env_scorer import CryptoEnvScorer
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
-from models.logistic_regression.logit import ClassifierAgent
+from models.classifier.logit import ClassifierAgent
 
 from config_mods import config_classifier as config
 
