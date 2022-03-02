@@ -41,41 +41,24 @@ class CryptoEnvScorer():
         return random_profit, agent_profit, optimal_profit
 
     def play_optimal(self):
-
+        fees = self.env.trade_fee_bid_percent
+        unit = self.env.unit
         start = self.env._current_tick
         steps = self.env.frame_len
         end = start + steps
-        actions = [Actions.Stay] * steps
         prices = self.env.prices[start:end]
 
-        def get_current_profit(prices, actions):
-            profit = 0
-            count = 0
-            for i in range(steps):
-                if (actions[i] == Actions.Buy):
-                    count += 1
-                    profit -= prices[i] # TODO fees
-                elif (actions[i] == Actions.Sell):
-                    count -= 1
-                    profit += prices[i] # TODO fees
-            profit += count * prices[steps-1]
-            return profit
-
-        profit = get_current_profit(prices, actions)
-
-        for i in range(3 * steps):
-            rand_index = rand.randint(0, steps - 1)
-            initial_action = actions[rand_index]
-            rand_action = initial_action
-            while(rand_action == initial_action):
-                rand_action = np.random.choice(list(Actions))
-            actions[rand_index] = rand_action
-            new_profit = get_current_profit(prices, actions)
-            if (new_profit <= profit):
-                actions[rand_index] = initial_action
-            else:
-                profit = new_profit
-            #print(profit)
+        profit = 0
+        end_buy_price = prices[steps - 1] * (1 + fees)
+        end_sell_price = prices[steps - 1] * (1 - fees)
+        
+        for i in range(steps - 1):
+            buy_price = prices[i] * (1 + fees)
+            sell_price = prices[i] * (1 - fees)
+            if sell_price > end_buy_price:
+                profit += unit * (sell_price - end_buy_price)
+            elif buy_price < end_sell_price:
+                profit += unit * (end_sell_price - buy_price)
 
         return profit
 

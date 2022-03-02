@@ -12,7 +12,7 @@ from config_mods import config_dqn_deepsense as config
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
-agent = A2CAgent(**config)
+agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 num_episodes = config['num_episode']
