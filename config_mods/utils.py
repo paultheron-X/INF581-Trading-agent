@@ -23,9 +23,9 @@ def get_config(config_parser):
         config_parser.get('dataset', 'DF_NAME')
 
     fill_config_with(config, config_parser, int, 'dataset', 'NUM_FEATURES')
+    fill_config_with(config, config_parser, float, 'dataset', 'TRAIN_TEST_SPLIT')
     
     config['save_path'] = os.getcwd() + config_parser.get('agent', 'SAVE_PATH')
-    
     
     fill_config_with(config, config_parser, int, 'agent', 'SAVE')
     fill_config_with(config, config_parser, int, 'agent', 'LOAD')
@@ -69,6 +69,8 @@ def get_config(config_parser):
 
     fill_config_with(config, config_parser, int, 'print', 'TRAINING_STATE')
     
+    if ('train_test_split' not in config):
+        raise ValueError('No train test repartition is given')
     if ('hidden_size' in config) and len(config['hidden_size']) <= 0:
         raise ValueError('Hidden size parameter is empty')
     if ('stride' in config and 'deepsense' in config) and (config['window_size'] % config['stride'] != 0) and config['deepsense']:

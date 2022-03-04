@@ -30,7 +30,7 @@ class CryptoEnv:
 
         self.seed()
         self.df = df
-        self.train_prices, self.test_prices, self.train_signal_features, self.test_signal_features = self._process_data()
+        self.train_prices, self.test_prices, self.train_signal_features, self.test_signal_features = self._process_data(**config)
         size_train_prices = self.train_prices.shape[0]
         size_test_prices = self.test_prices.shape[0]
         
@@ -161,8 +161,8 @@ class CryptoEnv:
     def _get_local_state(self):
         return None
 
-    def _process_data(self, verbose=False):
-        repartion_train_test = 0.8
+    def _process_data(self, verbose=False, **kwargs):
+        repartion_train_test = kwargs['train_test_split']
 
         prices = self.df.loc[:, 'close'].to_numpy()
         features = self.df.loc[:,
