@@ -162,7 +162,7 @@ class CryptoEnv:
         return None
 
     def _process_data(self, verbose=False):
-        repartion_train_test = 0.8
+        repartion_train_test = 0.99
 
         prices = self.df.loc[:, 'close'].to_numpy()
         features = self.df.loc[:,
