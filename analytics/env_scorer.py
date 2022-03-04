@@ -19,23 +19,23 @@ class CryptoEnvScorer():
         optimal_profits = []
         iters = tqdm(range(num_episodes), colour='blue')
         for i in iters:
-            random_profit, agent_profit, optimal_profit = self.play_episode(i)
+            random_profit, agent_profit, optimal_profit = self.play_episode(i, _training = False)
             random_profits.append(random_profit)
             agent_profits.append(agent_profit)
             optimal_profits.append(optimal_profit)
             if (i % 100 == 0):
                 iters.set_description(f"> Episode {i:5}  | random  {random_profit:10.2f}  | agent  {agent_profit:10.2f}  | optimal  {optimal_profit:10.2f}  | score  {100 * float(agent_profit - random_profit) / (optimal_profit - random_profit):10.2f}%")
-        
+
         return random_profits, agent_profits, optimal_profits
 
 
-    def play_episode(self, index):
-        self.env.reset()
+    def play_episode(self, index, _training = True):
+        self.env.reset(training = _training)
         tick = self.env._padding_tick
         random_profit = self.play_agent(self.random, index)
-        self.env.reset_to(tick)
+        self.env.reset_to(tick, training = _training)
         agent_profit = self.play_agent(self.agent, index)
-        self.env.reset_to(tick)
+        self.env.reset_to(tick, training = _training)
         optimal_profit = self.play_optimal()
 
         return random_profit, agent_profit, optimal_profit
