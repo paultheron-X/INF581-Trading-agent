@@ -33,12 +33,10 @@ class CryptoEnv:
         self.train_prices, self.test_prices, self.train_signal_features, self.test_signal_features = self._process_data()
         size_train_prices = self.train_prices.shape[0]
         size_test_prices = self.test_prices.shape[0]
+        
         self.frame_len_test = size_test_prices - self.window_size
-        self.frame_len = min(
-            self.frame_len, size_train_prices - self.window_size
-        )
 
-        assert self.frame_len > 1
+        assert size_test_prices - self.window_size > self.frame_len
         assert self.frame_len_test > 1
 
         self.shape = (self.window_size * self.train_signal_features.shape[1],)
@@ -53,7 +51,7 @@ class CryptoEnv:
         self._max_start_tick_test = size_test_prices - \
             self.frame_len_test - self.window_size
         self._start_tick = self.window_size
-        self._end_tick = size_train_prices - 1
+        self._end_tick = self._start_tick + self.frame_len
         self._done = None
         self._current_tick = None
         self._padding_tick = None
@@ -82,7 +80,7 @@ class CryptoEnv:
         self._padding_tick = int(
             np.floor(np.random.rand() * max_start_tick))
         self._current_tick = self._start_tick + self._padding_tick
-        self._end_tick = self._current_tick + frame_len - 1
+        self._end_tick = self._current_tick + frame_len
         self._total_reward = 0.
         self._last_reward = 0.
         self._quantity = 0
@@ -117,7 +115,7 @@ class CryptoEnv:
 
     def step(self, action):
         self._current_tick += 1
-        if self._current_tick == self._end_tick:
+        if self._current_tick == self._end_tick - 1:
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
             step_reward = self._update_profit_reward(
@@ -276,9 +274,8 @@ class CryptoEnv:
         return self._quantity
 
     def _calculate_reward(self, action, terminal=False):
-        next_price = self.prices[int(self._current_tick+1)]
+
         current_price = self.prices[int(self._current_tick)]
-        # print(f"Current price : {current_price} USD")
 
         if terminal:
             # etat terminal -> on revend tout au prix du marché pour avoir notre profit
@@ -290,6 +287,7 @@ class CryptoEnv:
             return reward
 
         else:
+            next_price = self.prices[int(self._current_tick+1)]
             if action == Actions.Buy.value:  # Buy
                 self._quantity += 1
                 current_transaction_amount = -self.unit * \
@@ -316,21 +314,3 @@ class CryptoEnv:
         self._total_reward += instant_reward
         return instant_reward
 
-    def best_action(self):
-        """Function to use in order to have the best possible action at a time t
-
-        Returns:
-            tuple: same return than step function fot this precise 'best' action
-        """
-        next_price = self.prices[int(self._current_tick+1)]
-        current_price = self.prices[int(self._current_tick)]
-        threshold = 0
-
-        if (next_price/current_price) < (1 - threshold):
-            action = Actions.Sell.value
-        elif (next_price/current_price) > 1 + threshold:
-            action = Actions.Buy.value
-        else:
-            action = Actions.Stay.value
-
-        return self.step(action=action)

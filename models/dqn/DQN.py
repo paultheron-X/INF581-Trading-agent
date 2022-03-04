@@ -1,7 +1,6 @@
 from config_mods import config_dqn_base as config
 import pickle
 from .replay_memory import Memory
-from gym_trading_btc.gym_anytrading.envs import *
 import pandas as pd
 from collections import deque
 import random

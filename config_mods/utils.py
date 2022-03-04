@@ -1,7 +1,6 @@
 from configparser import ConfigParser
 from os.path import join
 import os
-import sys
 import json
 
 
@@ -20,7 +19,7 @@ def fill_config_with(config, config_parser, modifier, section, option):
 def get_config(config_parser):
     config = {}
 
-    config['df_path'] = os.getcwd() + '/gym_trading_btc/gym_anytrading/datasets/data/' + \
+    config['df_path'] = os.getcwd() + '/gym_trading_btc/datasets/data/' + \
         config_parser.get('dataset', 'DF_NAME')
 
     fill_config_with(config, config_parser, int, 'dataset', 'NUM_FEATURES')

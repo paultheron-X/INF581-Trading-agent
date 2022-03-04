@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from gym_trading_btc.gym_anytrading.envs.bitcoin_env import CryptoEnv
+from gym_trading_btc.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 
 from models.dqn import DQNAgentDeepsense
@@ -19,7 +19,7 @@ scorer = CryptoEnvScorer(env, agent, **config)
 
 num_episodes = config['num_episode']
 
-random_profit, agent_profit, optimal_profit = scorer.play_episodes(
+random_profit, agent_profit, optimal_profit = scorer.train_episodes(
     num_episodes)
 
 

@@ -2,7 +2,6 @@ import pickle
 import json
 from matplotlib.font_manager import json_dump
 from .replay_memory import Memory
-from gym_trading_btc.gym_anytrading.envs import *
 import random
 import numpy as np
 import torch.nn as nn

@@ -3,3 +3,4 @@ numpy
 matplotlib
 gym
 pandas
+sklearn
