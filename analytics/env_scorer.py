@@ -13,13 +13,13 @@ class CryptoEnvScorer():
         self.random = Agent(**config)
         
 
-    def play_episodes(self, num_episodes):
+    def play_episodes(self, num_episodes, training =  False):
         random_profits = []
         agent_profits = []
         optimal_profits = []
         iters = tqdm(range(num_episodes), colour='blue')
         for i in iters:
-            random_profit, agent_profit, optimal_profit = self.play_episode(i, _training = False)
+            random_profit, agent_profit, optimal_profit = self.play_episode(i, _training = training)
             random_profits.append(random_profit)
             agent_profits.append(agent_profit)
             optimal_profits.append(optimal_profit)

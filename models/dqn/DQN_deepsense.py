@@ -46,7 +46,6 @@ class DQNSolver(nn.Module):
             )
             self.convolutional_block.add_module(
                 'conv_block_' + str(i), copy.copy(block))
-
         self.gru_block = torch.nn.Sequential(
             torch.nn.GRU(
                 input_size=int(self.input_size *
@@ -96,7 +95,6 @@ class DQNSolver(nn.Module):
         output_gru = torch.unbind(gru_res, dim=1)[-1]
         output_fin = self.mlp_block(output_gru)
         return output_fin
-
 
 class DQNAgentDeepsense(Agent):
     def __init__(self, **config):
