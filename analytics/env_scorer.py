@@ -75,7 +75,7 @@ class CryptoEnvScorer():
             optimal_profits[i] = optimal_profit
             if (optimal_profit < agent_profit or optimal_profit < random_profit):
                 print("[Warning] : non optimal profit found")
-            if (i % 100 == 99):
+            if (i % 100 == 0):
                 r,a,o = self.test()
                 iters.set_description(f"> Episode {i:5}  | random  {r:10.2f}  | agent  {a:10.2f}  | optimal  {o:10.2f}  | score  {100 * float(a - r) / (o - r):10.2f}%")
 

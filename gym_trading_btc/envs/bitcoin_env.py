@@ -92,10 +92,9 @@ class CryptoEnv:
 
     def reset_to(self, _padding_tick, training=True):
         self.reset(training=training)
-        frame_len = self.frame_len if training else self.frame_len_test
         self._padding_tick = _padding_tick
         self._current_tick = self._start_tick + self._padding_tick
-        self._end_tick = self._current_tick + frame_len
+        self._end_tick = self._current_tick + self.frame_len
 
     def get_episode_size(self):
         return self.frame_len if self.training else self.frame_len_test
