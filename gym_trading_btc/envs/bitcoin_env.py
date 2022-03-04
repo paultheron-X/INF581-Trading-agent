@@ -77,8 +77,7 @@ class CryptoEnv:
         self._done = False
         max_start_tick = self._max_start_tick_train if training else self._max_start_tick_test
         frame_len = self.frame_len if training else self.frame_len_test
-        self._padding_tick = int(
-            np.floor(np.random.rand() * max_start_tick))
+        self._padding_tick = int(np.floor(np.random.rand() * max_start_tick))
         self._current_tick = self._start_tick + self._padding_tick
         self._end_tick = self._current_tick + frame_len
         self._total_reward = 0.
@@ -118,16 +117,10 @@ class CryptoEnv:
         if self._current_tick == self._end_tick - 1:
             self._done = True
             # Il faut tout revendre pour tomber à zero action short ou possédée
-            step_reward = self._update_profit_reward(
-                action=action, terminal=True)
-            # print(" > For this last step, Action :  " + str(action) + " | Reward : " +
-            #     str(step_reward) + " | Total profit " + str(self._total_profit))
+            step_reward = self._update_profit_reward(action=action, terminal=True)
         else:
             self._done = False
             step_reward = self._update_profit_reward(action)
-           # print("     > For this step, Action :  " + str(action) + " | Reward : " +
-            #      str(step_reward) + " | Total profit " + str(self._total_profit))
-
         self._last_reward = step_reward
         self._position_history.append(action)
         observation = self._get_observation()
@@ -164,6 +157,76 @@ class CryptoEnv:
 
         for key, value in info.items():
             self.history[key].append(value)
+
+    def _get_local_state(self):
+        return None
+
+    def _process_data(self, verbose=False):
+        repartion_train_test = 0.8
+
+        prices = self.df.loc[:, 'close'].to_numpy()
+        features = self.df.loc[:,
+                               [
+                                   "open", "high",
+                                   "low", "close",
+                                   "Volume BTC", "Volume USD"
+                               ]
+                               ].to_numpy()
+
+        diff = np.insert(np.diff(prices), 0, 0)
+        signal_features = np.c_[features, diff]
+        indice_rep = int(np.floor(prices.shape[0] * repartion_train_test))
+        if verbose:
+            print(f"Signal rows : {len(signal_features)}")
+            print(f"Signal columns : {len(signal_features[0])}")
+            print(signal_features, end='\n\n')
+        train_price = prices[:indice_rep]
+        test_price = prices[indice_rep:]
+        train_features = signal_features[:indice_rep]
+        test_features = signal_features[indice_rep:]
+        return train_price, test_price, train_features, test_features
+
+    def _get_local_state(self):
+        return self._quantity
+
+    def _calculate_reward(self, action, terminal=False):
+        current_price = self.prices[int(self._current_tick)]
+        
+        if terminal:
+            # etat terminal -> on revend tout au prix du marché pour avoir notre profit
+            s_fees = 1 if self._quantity < 0 else -1
+            transation_amount = self._quantity * self.unit * current_price * \
+                (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can
+            self._total_profit += transation_amount
+            reward = self._total_profit
+            return reward
+
+        else:
+            next_price = self.prices[int(self._current_tick+1)]
+            if action == Actions.Buy.value:  # Buy
+                self._quantity += 1
+                current_transaction_amount = -self.unit * \
+                    current_price * (1+self.trade_fee_bid_percent)
+                self._total_profit += current_transaction_amount
+
+            elif action == Actions.Sell.value:  # Sell
+                self._quantity -= 1
+                current_transaction_amount = self.unit * \
+                    current_price * (1-self.trade_fee_bid_percent)
+                self._total_profit += current_transaction_amount
+
+            s_fees = 0 if action == Actions.Stay.value else 1
+            reward = self._quantity * self.unit * \
+                (next_price - current_price) + \
+                s_fees * self.trade_fee_bid_percent * self.unit * \
+                current_price  # On n'ajoute les fees que lorsque l'on sell ou buy
+            return reward
+
+    # Je mets dans CryptoTrading la MaJ du buget et de la quantité
+    def _update_profit_reward(self, action, terminal=False):
+        instant_reward = self._calculate_reward(action=action, terminal=terminal)
+        self._total_reward += instant_reward
+        return instant_reward
 
     def render(self, mode='human'):
 
@@ -241,76 +304,3 @@ class CryptoEnv:
 
     def pause_rendering(self):
         plt.show()
-
-    def _get_local_state(self):
-        return None
-
-    def _process_data(self, verbose=False):
-        repartion_train_test = 0.8
-
-        prices = self.df.loc[:, 'close'].to_numpy()
-        features = self.df.loc[:,
-                               [
-                                   "open", "high",
-                                   "low", "close",
-                                   "Volume BTC", "Volume USD"
-                               ]
-                               ].to_numpy()
-
-        diff = np.insert(np.diff(prices), 0, 0)
-        signal_features = np.c_[features, diff]
-        indice_rep = int(np.floor(prices.shape[0] * repartion_train_test))
-        if verbose:
-            print(f"Signal rows : {len(signal_features)}")
-            print(f"Signal columns : {len(signal_features[0])}")
-            print(signal_features, end='\n\n')
-        train_price = prices[:indice_rep]
-        test_price = prices[indice_rep:]
-        train_features = signal_features[:indice_rep]
-        test_features = signal_features[indice_rep:]
-        return train_price, test_price, train_features, test_features
-
-    def _get_local_state(self):
-        return self._quantity
-
-    def _calculate_reward(self, action, terminal=False):
-
-        current_price = self.prices[int(self._current_tick)]
-
-        if terminal:
-            # etat terminal -> on revend tout au prix du marché pour avoir notre profit
-            s_fees = 1 if self._quantity < 0 else -1
-            transation_amount = self._quantity * self.unit * current_price * \
-                (1 + s_fees * self.trade_fee_bid_percent)   # Sell or buy everything we need/can
-            self._total_profit += transation_amount
-            reward = self._total_profit
-            return reward
-
-        else:
-            next_price = self.prices[int(self._current_tick+1)]
-            if action == Actions.Buy.value:  # Buy
-                self._quantity += 1
-                current_transaction_amount = -self.unit * \
-                    current_price * (1+self.trade_fee_bid_percent)
-                self._total_profit += current_transaction_amount
-
-            elif action == Actions.Sell.value:  # Sell
-                self._quantity -= 1
-                current_transaction_amount = self.unit * \
-                    current_price * (1-self.trade_fee_bid_percent)
-                self._total_profit += current_transaction_amount
-
-            s_fees = 0 if action == Actions.Stay.value else 1
-            reward = self._quantity * self.unit * \
-                (next_price - current_price) + \
-                s_fees * self.trade_fee_bid_percent * self.unit * \
-                current_price  # On n'ajoute les fees que lorsque l'on sell ou buy
-            return reward
-
-    # Je mets dans CryptoTrading la MaJ du buget et de la quantité
-    def _update_profit_reward(self, action, terminal=False):
-        instant_reward = self._calculate_reward(
-            action=action, terminal=terminal)
-        self._total_reward += instant_reward
-        return instant_reward
-
