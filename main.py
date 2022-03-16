@@ -6,6 +6,7 @@ import warnings
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
+from models.policy_gradient import PolicyGradientAgent
 
 from config_mods import config_dqn_deepsense as config
 
@@ -13,7 +14,16 @@ from config_mods import config_dqn_deepsense as config
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
-agent = DQNAgentDeepsense(**config)
+"""
+batch_size = 5
+n_epochs = 4
+alpha = 0.0003
+agent = PolicyGradientAgent(n_actions=env.action_space.n, batch_size=batch_size, 
+                    alpha=alpha, n_epochs=n_epochs, 
+                    input_dims=env.observation_space.shape)
+"""
+agent = A2CAgent(env)
+#agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 if config['load']:
