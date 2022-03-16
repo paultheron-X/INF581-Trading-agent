@@ -13,7 +13,7 @@ from config_mods import config_dqn_deepsense as config
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
-agent = DQNAgentDeepsense(**config)
+agent = A2CAgent(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 if config['load']:

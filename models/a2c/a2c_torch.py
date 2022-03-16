@@ -29,13 +29,14 @@ class ActorCritic(nn.Module):
         self.input_size = kwargs["window_size"] * kwargs['num_features']
         self.num_features = kwargs["num_features"]
 
+        #--- Creation of the Critic ------
         self.critic = torch.nn.Sequential()
         
         block_input = torch.nn.Sequential(
                 nn.Linear(in_features = self.input_size, 
                           out_features =self.hidden_size_mlp[0]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
         self.critic.add_module('critic_block_input', copy.copy(block_input))
         
@@ -44,7 +45,7 @@ class ActorCritic(nn.Module):
                 nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
                           out_features =self.hidden_size_mlp[ind]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
             self.critic.add_module('critic_block_'+ str(ind), copy.copy(block))
         
@@ -55,13 +56,15 @@ class ActorCritic(nn.Module):
         self.critic.add_module('critic_block_output', copy.copy(block_fin))
         
         
+        
+        #--- Creation of the Actor ------
         self.actor = torch.nn.Sequential()
         
         block_input = torch.nn.Sequential(
                 nn.Linear(in_features = self.input_size, 
                           out_features =self.hidden_size_mlp[0]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
         self.actor.add_module('actor_block_input', copy.copy(block_input))
         
@@ -70,7 +73,7 @@ class ActorCritic(nn.Module):
                 nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
                           out_features = self.hidden_size_mlp[ind]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
             self.actor.add_module('actor_block_'+ str(ind), copy.copy(block))
         
@@ -90,8 +93,9 @@ class ActorCritic(nn.Module):
 class A2CAgent(Agent):
     def __init__(self, **config):
         super().__init__(**config)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        self.actor_critic = ActorCritic(**config)
+        self.actor_critic = ActorCritic(**config).to(self.device)
         
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=config['lr'])
         
@@ -104,7 +108,6 @@ class A2CAgent(Agent):
         self.lastvalue = None
         self.lastdist = None
         
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     #------------- Override the inheritance functions from Agent
     

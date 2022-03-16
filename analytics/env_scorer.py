@@ -11,6 +11,7 @@ class CryptoEnvScorer():
         self.env = env
         self.agent = agent
         self.random = Agent(**config)
+        self.last_tick = 0
         
     def test(self):
         self.env.reset(training = False)
@@ -83,14 +84,23 @@ class CryptoEnvScorer():
 
 
     def train_episode(self, index):
-        self.env.reset(training = True)
-        tick = self.env._padding_tick
-        random_profit = self.train_agent(self.random, index)
-        self.env.reset_to(tick, training = True)
-        agent_profit = self.train_agent(self.agent, index)
-        self.env.reset_to(tick, training = True)
-        optimal_profit = self.test_optimal()
-
+        if index%100 == 0:
+            self.env.reset(training = True)
+            tick = self.env._padding_tick
+            self.last_tick = tick
+            random_profit = self.train_agent(self.random, index)
+            self.env.reset_to(tick, training = True)
+            agent_profit = self.train_agent(self.agent, index)
+            self.env.reset_to(tick, training = True)
+            optimal_profit = self.test_optimal()
+        else:
+            tick = self.last_tick
+            self.env.reset_to(tick, training = True)
+            random_profit = self.train_agent(self.random, index)
+            self.env.reset_to(tick, training = True)
+            agent_profit = self.train_agent(self.agent, index)
+            self.env.reset_to(tick, training = True)
+            optimal_profit = self.test_optimal()
         return random_profit, agent_profit, optimal_profit
 
     def train_agent(self, agent, index):
