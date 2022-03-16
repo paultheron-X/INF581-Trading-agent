@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import argparse
+import os
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
@@ -32,4 +33,5 @@ for t in tqdm(range(T)):
 
     signal = newsignal
 
+os.makedirs("gym_trading_btc/datasets/data/generated_data", exist_ok=True)
 pd.DataFrame(columns_pd,columns=column_names).to_csv(f"gym_trading_btc/datasets/data/generated_data/sinus_l={args.period}_M={args.amplitude}_h={args.offset}.csv",index=False)
