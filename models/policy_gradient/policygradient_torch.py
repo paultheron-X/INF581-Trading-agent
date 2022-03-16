@@ -74,3 +74,9 @@ class PolicyGradientAgent(Agent):
     
     def print_infos(self):
         print("Policy Gradient agent")
+        
+    def load_model(self, **kwargs):
+        return super().load_model(**kwargs)
+    
+    def save_model(self, **kwargs):
+        return super().save_model(**kwargs)

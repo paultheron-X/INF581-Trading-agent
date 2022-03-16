@@ -29,13 +29,14 @@ class ActorCritic(nn.Module):
         self.input_size = kwargs["window_size"] * kwargs['num_features']
         self.num_features = kwargs["num_features"]
 
+        #--- Creation of the Critic ------
         self.critic = torch.nn.Sequential()
         
         block_input = torch.nn.Sequential(
                 nn.Linear(in_features = self.input_size, 
                           out_features =self.hidden_size_mlp[0]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
         self.critic.add_module('critic_block_input', copy.copy(block_input))
         
@@ -44,7 +45,7 @@ class ActorCritic(nn.Module):
                 nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
                           out_features =self.hidden_size_mlp[ind]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
             self.critic.add_module('critic_block_'+ str(ind), copy.copy(block))
         
@@ -55,13 +56,15 @@ class ActorCritic(nn.Module):
         self.critic.add_module('critic_block_output', copy.copy(block_fin))
         
         
+        
+        #--- Creation of the Actor ------
         self.actor = torch.nn.Sequential()
         
         block_input = torch.nn.Sequential(
                 nn.Linear(in_features = self.input_size, 
                           out_features =self.hidden_size_mlp[0]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
         self.actor.add_module('actor_block_input', copy.copy(block_input))
         
@@ -70,13 +73,13 @@ class ActorCritic(nn.Module):
                 nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
                           out_features = self.hidden_size_mlp[ind]),
                 nn.LeakyReLU(),
-                nn.Dropout(p = kwargs["dropout_linear"])
+                nn.Dropout(p = kwargs["linear_dropout"])
             )
             self.actor.add_module('actor_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
-                nn.Softmax(dim=1)
+                nn.Softmax()
             )
 
         self.actor.add_module('actor_block_output', copy.copy(block_fin))
@@ -90,8 +93,9 @@ class ActorCritic(nn.Module):
 class A2CAgent(Agent):
     def __init__(self, **config):
         super().__init__(**config)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        self.actor_critic = ActorCritic(**config)
+        self.actor_critic = ActorCritic(**config).to(self.device)
         
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=config['lr'])
         
@@ -104,9 +108,8 @@ class A2CAgent(Agent):
         self.lastvalue = None
         self.lastdist = None
         
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    #Override the previous functions from Agent
+    #------------- Override the inheritance functions from Agent
     
     def predict(self, state):        
         state = torch.FloatTensor(state).to(self.device)
@@ -124,7 +127,7 @@ class A2CAgent(Agent):
         next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
-        
+                
         log_probs = torch.ravel(torch.tensor(self.log_probs))
         returns   = torch.cat(returns)
         values    = torch.cat(self.values)
@@ -152,6 +155,12 @@ class A2CAgent(Agent):
     
     def print_infos(self):
         print("A2C agent")
+    
+    def load_model(self, **kwargs):
+        return super().load_model(**kwargs)
+    
+    def save_model(self, **kwargs):
+        return super().save_model(**kwargs)
     
 
     #----- Private part

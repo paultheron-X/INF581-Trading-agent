@@ -14,3 +14,5 @@ Method:
 config_dqn_base = get_config(get_config_parser('dqn_base.cfg'))
 
 config_dqn_deepsense = get_config(get_config_parser('dqn_deepsense.cfg'))
+
+config_classifier = get_config(get_config_parser('classifier.cfg'))

@@ -23,3 +23,9 @@ class Agent:
 
     def print_infos(self):
         print("Random agent")
+    
+    def save_model(self, **kwargs):
+        print("Model not saved, method not correctly implemented")
+
+    def load_model(self, **kwargs):
+        print("Model not loaded, method not correctly implemented")

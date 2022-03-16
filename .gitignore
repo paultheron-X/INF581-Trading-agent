@@ -1,4 +1,5 @@
 *.png
+figs/
 
 
 # Byte-compiled / optimized / DLL files
@@ -147,3 +148,10 @@ build/
 .json
 
 *.pyc
+
+*.pkl
+*.txt
+*.pt
+
+# Generated data
+gym_trading_btc/datasets/data/generated_data/*.csv
