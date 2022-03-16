@@ -5,9 +5,4 @@ gym
 pandas
 sklearn
 argparse
-<<<<<<< HEAD
 tqdm
-=======
-tqdm
-os
->>>>>>> refs/remotes/origin/main
