@@ -4,3 +4,4 @@ matplotlib
 gym
 pandas
 sklearn
+tqdm
