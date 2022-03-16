@@ -150,7 +150,7 @@ class DQNAgentDeepsense(Agent):
         print("DQNDeepsense agent")
         
     def load_model(self, **kwargs):
-        path = kwargs['save_path']
+        path = kwargs['load_path']
         self.dqn_validation.load_state_dict(torch.load(path + "/DQNDeepsense.pt"))
         self.dqn_target.load_state_dict(torch.load(path + "/DQNDeepsense.pt"))
         file_memory = open(path + "/memory.pkl", 'rb') 
@@ -159,6 +159,7 @@ class DQNAgentDeepsense(Agent):
     
     def save_model(self, **kwargs):
         path = kwargs['save_path']
+        os.makedirs(path, exist_ok=True)
         torch.save(self.dqn_validation.state_dict(), path + "/DQNDeepsense.pt")  
         with open(path + "/memory.pkl", "wb") as f:
             pickle.dump(self.memory, f)

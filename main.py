@@ -3,7 +3,12 @@ import pandas as pd
 from gym_trading_btc.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 import warnings
+<<<<<<< HEAD
 import argparse
+=======
+import datetime
+import os
+>>>>>>> refs/remotes/origin/main
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
@@ -49,7 +54,10 @@ def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
     plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
     plt.legend()
-    plt.savefig(title)
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    os.makedirs("figs", exist_ok = True)
+    plt.savefig(title+"_"+dt_string+".png")
     plt.clf()
 
 def plot_relative(random_profit, agent_profit, optimal_profit, title):
@@ -70,10 +78,14 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
     plt.axhline(y = 1, linestyle = ':', label = "Optimal")
     plt.axhline(y = 0, linestyle = ':', label = "Stay")
     plt.legend()
-    plt.savefig(title)
+    os.makedirs("figs", exist_ok = True)
+
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    plt.savefig(title+"_"+dt_string+".png")
 
 
-plot_asolute(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/asolute-agent-profit_episode.png')
-plot_relative(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/relative-agent-profit_episode.png')
-plot_asolute(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/asolute-agent-profit_validation.png')
-plot_relative(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/relative-agent-profit_validation.png')
+plot_asolute(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/asolute-agent-profit_episode')
+plot_relative(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/relative-agent-profit_episode')
+plot_asolute(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/asolute-agent-profit_validation')
+plot_relative(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/relative-agent-profit_validation')
