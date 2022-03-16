@@ -26,6 +26,8 @@ def get_config(config_parser):
     fill_config_with(config, config_parser, float, 'dataset', 'TRAIN_TEST_SPLIT')
     
     config['save_path'] = os.getcwd() + config_parser.get('agent', 'SAVE_PATH')
+    config['load_path'] = os.getcwd() + config_parser.get('agent', 'LOAD_PATH')
+
     
     fill_config_with(config, config_parser, int, 'agent', 'SAVE')
     fill_config_with(config, config_parser, int, 'agent', 'LOAD')
