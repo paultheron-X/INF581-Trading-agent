@@ -79,7 +79,7 @@ class ActorCritic(nn.Module):
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
-                nn.Softmax(dim=1)
+                nn.Softmax()
             )
 
         self.actor.add_module('actor_block_output', copy.copy(block_fin))
@@ -127,7 +127,7 @@ class A2CAgent(Agent):
         next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
-        
+                
         log_probs = torch.ravel(torch.tensor(self.log_probs))
         returns   = torch.cat(returns)
         values    = torch.cat(self.values)

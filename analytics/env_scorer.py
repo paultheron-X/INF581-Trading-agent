@@ -65,22 +65,29 @@ class CryptoEnvScorer():
 
 
     def train_episodes(self, num_episodes):
-        random_profits = np.zeros(num_episodes)
-        agent_profits = np.zeros(num_episodes)
-        optimal_profits = np.zeros(num_episodes)
+        random_profits_episode = np.zeros(num_episodes)
+        agent_profits_episode = np.zeros(num_episodes)
+        optimal_profits_episode = np.zeros(num_episodes)
+        random_profits_validation = np.zeros(int(num_episodes/100))
+        agent_profits_validation = np.zeros(int(num_episodes/100))
+        optimal_profits_validation = np.zeros(int(num_episodes/100))
         iters = tqdm(range(num_episodes), colour='blue')
         for i in iters:
             random_profit, agent_profit, optimal_profit = self.train_episode(i)
-            random_profits[i] = random_profit
-            agent_profits[i] =  agent_profit
-            optimal_profits[i] = optimal_profit
+            random_profits_episode[i] = random_profit
+            agent_profits_episode[i] =  agent_profit
+            optimal_profits_episode[i] = optimal_profit
             if (optimal_profit < agent_profit or optimal_profit < random_profit):
                 print("[Warning] : non optimal profit found")
             if (i % 100 == 0):
                 r,a,o = self.test()
-                iters.set_description(f"> Episode {i:5}  | random  {r:10.2f}  | agent  {a:10.2f}  | optimal  {o:10.2f}  | score  {100 * float(a - r) / (o - r):10.2f}%")
+                random_profits_validation[int(i/100)] = r
+                agent_profits_validation[int(i/100)] =  a
+                optimal_profits_validation[int(i/100)] = o
+                r = 0
+                iters.set_description(f"> Episode {i:5}  | Stay  {r:10.2f}  | agent  {a:10.2f}  | optimal  {o:10.2f}  | score  {100 * float(a - r) / (o - r):10.2f}%")
 
-        return random_profits, agent_profits, optimal_profits
+        return random_profits_episode, agent_profits_episode, optimal_profits_episode, random_profits_validation, agent_profits_validation, optimal_profits_validation
 
 
     def train_episode(self, index):
