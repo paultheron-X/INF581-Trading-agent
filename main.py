@@ -3,12 +3,9 @@ import pandas as pd
 from gym_trading_btc.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 import warnings
-<<<<<<< HEAD
-import argparse
-=======
 import datetime
 import os
->>>>>>> refs/remotes/origin/main
+import argparse
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
