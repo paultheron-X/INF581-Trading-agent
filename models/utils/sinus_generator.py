@@ -32,4 +32,4 @@ for t in tqdm(range(T)):
 
     signal = newsignal
 
-pd.DataFrame(columns_pd,columns=column_names).to_csv(f"gym_trading_btc/datasets/data/sinus_l={args.period}_M={args.amplitude}_h={args.offset}.csv",index=False)
+pd.DataFrame(columns_pd,columns=column_names).to_csv(f"gym_trading_btc/datasets/data/generated_data/sinus_l={args.period}_M={args.amplitude}_h={args.offset}.csv",index=False)
