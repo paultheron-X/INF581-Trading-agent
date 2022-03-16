@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--period", help="function period", default=0.2, required=False)
+parser.add_argument("--nb_sin", help="nb sinus", default=1, required=False)
 parser.add_argument("--amplitude", help="function amplitude", default=50, required=False)
 parser.add_argument("--offset", help="function offset", default=900, required=False)
 parser.add_argument("--noise", help="function noise", default=0, required=False)
@@ -16,13 +17,19 @@ l = float(args.period)
 M = float(args.amplitude)
 h = float(args.offset)
 noise = float(args.noise)
+nb_sin = int(args.nb_sin)
 
 column_names = ["unix","date","symbol","open","high","low","close","Volume BTC","Volume USD"]
 columns_pd = np.zeros((T,len(column_names)))
 
-signal = h + M*np.sin(l*0)
+signal = 0
+for k in range(nb_sin):
+    signal += h/2**k + M*np.sin(l*0*2**k)/2**k
+
 for t in tqdm(range(T)):
-    newsignal = h + M*np.sin(l*t)
+    newsignal = 0
+    for k in range(nb_sin):
+        newsignal += h/2**k + M*np.sin(l*t*2**k)/2**k
 
     unix = np.random.randint(100)
     date = np.random.randint(100)
@@ -38,4 +45,4 @@ for t in tqdm(range(T)):
     signal = newsignal
 
 os.makedirs("gym_trading_btc/datasets/data/generated_data", exist_ok=True)
-pd.DataFrame(columns_pd,columns=column_names).to_csv(f"gym_trading_btc/datasets/data/generated_data/sinus_l{args.period}_M{args.amplitude}_h{args.offset}_noise{args.noise}.csv",index=False)
+pd.DataFrame(columns_pd,columns=column_names).to_csv(f"gym_trading_btc/datasets/data/generated_data/sinus_l{args.period}_M{args.amplitude}_h{args.offset}_noise{args.noise}_nbsin{nb_sin}.csv",index=False)
