@@ -20,6 +20,7 @@ parser.add_argument("--load_path", help="load_path", required=False)
 parser.add_argument("--num_episode", help="num_episode", required=False)
 parser.add_argument("--save", help="save", required=False)
 parser.add_argument("--load", help="load", required=False)
+parser.add_argument("--lr", help="lr", required=False)
 args = parser.parse_args()
 
 if args.df_name is not None:
@@ -34,6 +35,8 @@ if args.save is not None:
     config['save'] = int(args.save)
 if args.load is not None:
     config['load'] = int(args.load)
+if args.load is not None:
+    config['lr'] = float(args.lr)
 
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
@@ -57,8 +60,8 @@ def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
     plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
     plt.legend()
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    now = datetime.datetime.now()
+    dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
     os.makedirs("figs", exist_ok = True)
     plt.savefig(title+"_"+dt_string+".png")
     plt.clf()
@@ -83,8 +86,8 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
     plt.legend()
     os.makedirs("figs", exist_ok = True)
 
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    now = datetime.datetime.now()
+    dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
     plt.savefig(title+"_"+dt_string+".png")
 
 
