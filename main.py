@@ -3,11 +3,29 @@ import pandas as pd
 from gym_trading_btc.envs.bitcoin_env import CryptoEnv
 from analytics.env_scorer import CryptoEnvScorer
 import warnings
+import argparse
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 
 from config_mods import config_dqn_deepsense as config
+
+# Parser
+parser = argparse.ArgumentParser()
+parser.add_argument("--DF_NAME", help="DF_NAME", required=False)
+parser.add_argument("--SAVE_PATH", help="SAVE_PATH", required=False)
+parser.add_argument("--LOAD_PATH", help="LOAD_PATH", required=False)
+parser.add_argument("--NUM_EPISODE", help="NUM_EPISODE", required=False)
+args = parser.parse_args()
+
+if args.df_name is not None:
+    config['DF_NAME'] = args.DF_NAME
+if args.df_name is not None:
+    config['SAVE_PATH'] = args.SAVE_PATH
+if args.df_name is not None:
+    config['LOAD_PATH'] = args.LOAD_PATH
+if args.df_name is not None:
+    config['NUM_EPISODE'] = int(args.NUM_EPISODE)
 
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
