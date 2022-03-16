@@ -152,3 +152,6 @@ build/
 *.pkl
 *.txt
 *.pt
+
+# Generated data
+gym_trading_btc/datasets/data/generated_data/*.csv
