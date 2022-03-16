@@ -18,6 +18,8 @@ parser.add_argument("--df_name", help="df_name", required=False)
 parser.add_argument("--save_path", help="save_path", required=False)
 parser.add_argument("--load_path", help="load_path", required=False)
 parser.add_argument("--num_episode", help="num_episode", required=False)
+parser.add_argument("--save", help="save", required=False)
+parser.add_argument("--load", help="load", required=False)
 args = parser.parse_args()
 
 if args.df_name is not None:
@@ -28,6 +30,10 @@ if args.df_name is not None:
     config['load_path'] = args.load_path
 if args.df_name is not None:
     config['num_episode'] = int(args.num_episode)
+if args.save is not None:
+    config['save'] = int(args.save)
+if args.load is not None:
+    config['load'] = int(args.load)
 
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
