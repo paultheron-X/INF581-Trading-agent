@@ -21,13 +21,13 @@ parser.add_argument("--num_episode", help="num_episode", required=False)
 args = parser.parse_args()
 
 if args.df_name is not None:
-    config['df_name'] = args.DF_NAME
+    config['df_name'] = args.df_name
 if args.df_name is not None:
-    config['save_path'] = args.SAVE_PATH
+    config['save_path'] = args.save_path
 if args.df_name is not None:
-    config['load_path'] = args.LOAD_PATH
+    config['load_path'] = args.load_path
 if args.df_name is not None:
-    config['num_episode'] = int(args.NUM_EPISODE)
+    config['num_episode'] = int(args.num_episode)
 
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
