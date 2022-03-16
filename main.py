@@ -43,6 +43,7 @@ if args.load is not None:
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
+
 """
 batch_size = 5
 n_epochs = 4
@@ -51,6 +52,7 @@ agent = PolicyGradientAgent(n_actions=env.action_space.n, batch_size=batch_size,
                     alpha=alpha, n_epochs=n_epochs, 
                     input_dims=env.observation_space.shape)
 """
+
 agent = A2CAgent(env)
 #agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)

@@ -7,6 +7,11 @@ import numpy as np
 import itertools
 import pandas as pd
 import seaborn as sns
+import pickle
+import json
+import random
+import os
+
 
 from models.agent import Agent
 
@@ -57,7 +62,42 @@ class A2CAgent(Agent):
         # Their optimizers
         self.value_network_optimizer = optim.RMSprop(self.value_network.parameters(), lr=value_lr)
         self.actor_network_optimizer = optim.RMSprop(self.actor_network.parameters(), lr=actor_lr)
+    
+    # ---- Override public functions, inherited from class Agent
+    
+    def predict(self, state):
+        policy = self.actor_network(state)
+        action = torch.multinomial(policy, 1)
+        return action
+
+    def learn(self, previous_state, action, next_state, reward, terminal):
+        self._remember(previous_state, action, reward, next_state, terminal)
+        self._trading_lessons()
+
+    def learn_episode(self, num_episode, **kwargs):
+        pass
+
+    def print_infos(self):
+        print("A2C agent")
         
+    def save_model(self, **kwargs):
+        path = kwargs['save_path']
+        os.makedirs(path, exist_ok=True)
+        torch.save(self.value_network.state_dict(), path + "/ValueNetwork.pt")
+        torch.save(self.actor_network.state_dict(), path + "/ActorNetwork.pt")  
+        with open(path + "/model_config.txt", "w") as f:
+            f.write(json.dumps(kwargs, indent = 6))
+        print("> Ending simulation, A2C model successfully saved")
+        
+    def load_model(self, **kwargs):
+        path = kwargs['load_path']
+        self.value_network.load_state_dict(torch.load(path + "/ValueNetwork.pt"))
+        self.actor_network.load_state_dict(torch.load(path + "/ActorNetwork.pt"))
+        print("> Starting simulation, A2C model successfully loaded")
+    
+    
+    #---------------- Private functions -------
+    
     # Hint: use it during training_batch
     def _returns_advantages(self, rewards, dones, values, next_value):
         """Returns the cumulative discounted rewards at each time step
@@ -90,7 +130,7 @@ class A2CAgent(Agent):
         advantages = returns - values
         return returns, advantages
 
-    def training_batch(self, epochs, batch_size):
+    def _training_batch(self, epochs, batch_size):
         """Perform a training by batch
 
         Parameters
@@ -133,7 +173,7 @@ class A2CAgent(Agent):
             returns, advantages = self._returns_advantages(rewards, dones, values, next_value)
 
             # Learning step !
-            self.optimize_model(observations, actions, returns, advantages)
+            self._optimize_model(observations, actions, returns, advantages)
 
             # Test it every 50 epochs
             if epoch % 50 == 0 or epoch == epochs - 1:
@@ -148,11 +188,11 @@ class A2CAgent(Agent):
                     
         # Plotting
         r = pd.DataFrame((itertools.chain(*(itertools.product([i], rewards_test[i]) for i in range(len(rewards_test))))), columns=['Epoch', 'Reward'])
-        sns.lineplot(x="Epoch", y="Reward", data=r, ci='sd');
+        sns.lineplot(x="Epoch", y="Reward", data=r, ci='sd')
         
         print(f'The trainnig was done over a total of {episode_count} episodes')
 
-    def optimize_model(self, observations, actions, returns, advantages):
+    def _optimize_model(self, observations, actions, returns, advantages):
         actions = F.one_hot(torch.tensor(actions), self.env.action_space.n)
         returns = torch.tensor(returns[:, None], dtype=torch.float)
         advantages = torch.tensor(advantages, dtype=torch.float)
@@ -163,7 +203,7 @@ class A2CAgent(Agent):
         
         raise NotImplementedError
 
-    def evaluate(self, render=False):
+    """def evaluate(self, render=False):
         env = self.monitor_env if render else self.env
         observation = env.reset()
         observation = torch.tensor(observation, dtype=torch.float)
@@ -178,4 +218,4 @@ class A2CAgent(Agent):
             reward_episode += reward
             
         env.close()
-        return reward_episode
+        return reward_episode"""
