@@ -29,7 +29,7 @@ if config['save']:
 def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     #plt.plot(range(num_episodes), random_profit, label="Random profit")
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
-    plt.plot(range(len(agent_profit)), optimal_profit, label="'Optimal' profit")
+    plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
     plt.legend()
     plt.savefig(title)
     plt.clf()
@@ -48,7 +48,7 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
                 relative.append(float(a - r) / (o - r))
             except:
                 relative.append(0)
-    plt.plot(range(num_episodes), relative, label="Relative profit for agent")
+    plt.plot(range(len(agent_profit)), relative, label="Relative profit for agent")
     plt.axhline(y = 1, linestyle = ':', label = "Optimal")
     plt.axhline(y = 0, linestyle = ':', label = "Stay")
     plt.legend()
