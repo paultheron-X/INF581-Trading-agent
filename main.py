@@ -14,20 +14,20 @@ from config_mods import config_dqn_deepsense as config
 
 # Parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--DF_NAME", help="DF_NAME", required=False)
-parser.add_argument("--SAVE_PATH", help="SAVE_PATH", required=False)
-parser.add_argument("--LOAD_PATH", help="LOAD_PATH", required=False)
-parser.add_argument("--NUM_EPISODE", help="NUM_EPISODE", required=False)
+parser.add_argument("--df_name", help="df_name", required=False)
+parser.add_argument("--save_path", help="save_path", required=False)
+parser.add_argument("--load_path", help="load_path", required=False)
+parser.add_argument("--num_episode", help="num_episode", required=False)
 args = parser.parse_args()
 
 if args.df_name is not None:
-    config['DF_NAME'] = args.DF_NAME
+    config['df_name'] = args.DF_NAME
 if args.df_name is not None:
-    config['SAVE_PATH'] = args.SAVE_PATH
+    config['save_path'] = args.SAVE_PATH
 if args.df_name is not None:
-    config['LOAD_PATH'] = args.LOAD_PATH
+    config['load_path'] = args.LOAD_PATH
 if args.df_name is not None:
-    config['NUM_EPISODE'] = int(args.NUM_EPISODE)
+    config['num_episode'] = int(args.NUM_EPISODE)
 
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
