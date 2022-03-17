@@ -154,7 +154,8 @@ class A2CAgent(Agent):
         next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
-                
+
+        print(returns)
         log_probs = torch.ravel(torch.tensor(self.log_probs))
         returns   = torch.cat(returns)
         values    = torch.cat(self.values)
@@ -212,6 +213,3 @@ class A2CAgent(Agent):
             R = rewards[step] + gamma * R * masks[step]
             returns.insert(0, R)
         return returns
-
-
-from gym.spaces import Discrete

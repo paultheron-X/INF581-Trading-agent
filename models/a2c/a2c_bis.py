@@ -71,8 +71,9 @@ class A2CAgent(Agent):
         return action
 
     def learn(self, previous_state, action, next_state, reward, terminal):
-        self._remember(previous_state, action, reward, next_state, terminal)
-        self._trading_lessons()
+        #Ici il faut mettre la phase d'entrainement 
+        
+        pass
 
     def learn_episode(self, num_episode, **kwargs):
         pass

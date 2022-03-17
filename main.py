@@ -53,7 +53,7 @@ agent = PolicyGradientAgent(n_actions=env.action_space.n, batch_size=batch_size,
                     input_dims=env.observation_space.shape)
 """
 
-agent = A2CAgent(env)
+agent = A2CAgent(**config)
 #agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
