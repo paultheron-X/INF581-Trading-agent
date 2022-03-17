@@ -155,9 +155,8 @@ class A2CAgent(Agent):
         _, next_value = self.actor_critic(next_state)
         returns = self._compute_returns(next_value, self.rewards, self.masks)
 
-        print(returns)
-        log_probs = torch.ravel(torch.tensor(self.log_probs))
-        returns   = torch.cat(returns)
+        log_probs = torch.cat(self.log_probs)
+        returns   = torch.cat(returns).detach()
         values    = torch.cat(self.values)
 
         advantage = returns - values
