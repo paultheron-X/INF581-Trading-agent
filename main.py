@@ -9,7 +9,7 @@ import argparse
 
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
-from models.policy_gradient import PolicyGradientAgent
+#from models.policy_gradient import PolicyGradientAgent
 
 from config_mods import config_dqn_deepsense as config
 
