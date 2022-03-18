@@ -1,1 +1,1 @@
-from .policygradient import PolicyGradientAgent
+from .pgbis import PolicyGradientAgent

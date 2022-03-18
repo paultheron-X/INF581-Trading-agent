@@ -27,7 +27,7 @@ parser.add_argument("--lr", help="lr", required=False)
 parser.add_argument("--config", required=False)
 args = parser.parse_args()
 
-config = config_a2c
+config = config_policygradient
 
 if args.df_name is not None:
     config['df_name'] = args.df_name
@@ -50,7 +50,7 @@ df_btc = pd.read_csv(config["df_path"], delimiter=",")
 env = CryptoEnv(**config)
 
 
-agent = A2CAgent(**config)
+agent = PolicyGradientAgent(**config)
 #agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 

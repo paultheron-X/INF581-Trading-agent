@@ -17,5 +17,8 @@ config_dqn_deepsense = get_config(get_config_parser('dqn_deepsense.cfg'))
 
 config_a2c = get_config(get_config_parser('config_a2c.cfg'))
 
+config_policygradient = get_config(get_config_parser('config_policygradient.cfg'))
+
+
 config_classifier = get_config(get_config_parser('classifier.cfg'))
 
