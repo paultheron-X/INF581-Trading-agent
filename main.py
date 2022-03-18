@@ -28,10 +28,13 @@ args = parser.parse_args()
 if args.config is not None:
     if args.config == 'dqn_base':
         config = config_dqn_base
+        agent = DQNAgentDeepsense(**config)
     elif args.config == "dqn_deepsense":
         config = config_dqn_deepsense
+        agent = DQNAgentDeepsense(**config)
     elif args.config == "config_a2c":
         config = config_a2c
+        agent = A2CAgent(**config)
 
 else:
     config = config_a2c
@@ -57,8 +60,6 @@ df_btc = pd.read_csv(config["df_path"], delimiter=",")
 env = CryptoEnv(**config)
 
 
-agent = A2CAgent(**config)
-#agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 if config['load']:
