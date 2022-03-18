@@ -18,8 +18,6 @@ from models import Agent
 
 # Constants
 GAMMA = 0.99
-num_steps = 300
-max_episodes = 3000
 
 class ActorCritic(nn.Module):
     def __init__(self, **kwargs):

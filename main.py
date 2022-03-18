@@ -11,7 +11,8 @@ from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 #from models.policy_gradient import PolicyGradientAgent
 
-from config_mods import config_dqn_deepsense as config
+from config_mods import *
+
 
 # Parser
 parser = argparse.ArgumentParser()
@@ -23,6 +24,8 @@ parser.add_argument("--save", help="save", required=False)
 parser.add_argument("--load", help="load", required=False)
 parser.add_argument("--lr", help="lr", required=False)
 args = parser.parse_args()
+
+config = config_a2c
 
 if args.df_name is not None:
     config['df_name'] = args.df_name
