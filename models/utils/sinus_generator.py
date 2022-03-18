@@ -19,6 +19,14 @@ h = float(args.offset)
 noise = float(args.noise)
 nb_sin = int(args.nb_sin)
 
+
+if os.path.exists(f"gym_trading_btc/datasets/data/generated_data/sinus_l{args.period}_M{args.amplitude}_h{args.offset}_noise{args.noise}_nbsin{nb_sin}.csv"):
+    print("It seems that the sinus curve you're generating already exists.")
+    todo = input("Re-generate the curve ? [Y/n] :")
+    if todo not in ["Y","y"]:
+        quit()
+
+
 column_names = ["unix","date","symbol","open","high","low","close","Volume BTC","Volume USD"]
 columns_pd = np.zeros((T,len(column_names)))
 

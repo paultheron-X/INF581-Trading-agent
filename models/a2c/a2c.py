@@ -36,6 +36,7 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["linear_dropout"])
             )
+        torch.nn.init.xavier_uniform(block_input)
         self.critic.add_module('critic_block_input', copy.copy(block_input))
         
         for ind in range(1, len(self.hidden_size_mlp)):
@@ -45,12 +46,14 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["linear_dropout"])
             )
+            torch.nn.init.xavier_uniform(block)
             self.critic.add_module('critic_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][-1], 1),
             )
 
+        torch.nn.init.xavier_uniform(block_fin)
         self.critic.add_module('critic_block_output', copy.copy(block_fin))
         
         
@@ -63,6 +66,7 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["linear_dropout"])
             )
+        torch.nn.init.xavier_uniform(block_input)
         self.actor.add_module('actor_block_input', copy.copy(block_input))
         
         for ind in range(1, len(self.hidden_size_mlp)):
@@ -72,13 +76,14 @@ class ActorCritic(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p = kwargs["linear_dropout"])
             )
+            torch.nn.init.xavier_uniform(block)
             self.actor.add_module('actor_block_'+ str(ind), copy.copy(block))
         
         block_fin = torch.nn.Sequential(
                 nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
                 nn.Softmax()
             )
-
+        torch.nn.init.xavier_uniform(block_fin)
         self.actor.add_module('actor_block_output', copy.copy(block_fin))
         
     def forward(self, x):
