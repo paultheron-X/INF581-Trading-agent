@@ -45,7 +45,8 @@ class DQNSolver(nn.Module):
             )
             self.convolutional_block.add_module(
                 'conv_block_' + str(i), copy.copy(block))
-                
+        torch.nn.init.xavier_uniform(self.convolutional_block)
+
         self.gru_block = torch.nn.Sequential(
             torch.nn.GRU(
                 input_size=int(self.input_size *
@@ -58,6 +59,7 @@ class DQNSolver(nn.Module):
                 bidirectional=False
             )
         )
+        torch.nn.init.xavier_uniform(self.gru_block)
 
         self.mlp_block = torch.nn.Sequential()
 
@@ -68,6 +70,7 @@ class DQNSolver(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p=kwargs["linear_dropout"])
             )
+            torch.nn.init.xavier_uniform(block.weight)
             self.mlp_block.add_module(
                 'mlp_block_' + str(ind), copy.copy(block))
 
