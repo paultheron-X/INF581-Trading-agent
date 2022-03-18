@@ -1,107 +1,225 @@
+import os
 import numpy as np
-import tensorflow as tf
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior() 
+import torch as T
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions.categorical import Categorical
+from models import Agent
+import json
+import pickle
 
-# reproducible
-np.random.seed(1)
-#tf.set_random_seed(1)
+class PPOMemory:
+    def __init__(self, batch_size):
+        self.states = []
+        self.probs = []
+        self.vals = []
+        self.actions = []
+        self.rewards = []
+        self.dones = []
 
+        self.batch_size = batch_size
 
-class PolicyGradient:
-    def __init__(
-            self,
-            n_actions,
-            n_features,
-            learning_rate=0.01,
-            reward_decay=0.95,
-            output_graph=False,
-    ):
-        self.n_actions = n_actions
-        self.n_features = n_features
-        self.lr = learning_rate
-        self.gamma = reward_decay
+    def generate_batches(self):
+        n_states = len(self.states)
+        batch_start = np.arange(0, n_states, self.batch_size)
+        indices = np.arange(n_states, dtype=np.int64)
+        np.random.shuffle(indices)
+        batches = [indices[i:i+self.batch_size] for i in batch_start]
 
-        self.ep_obs, self.ep_as, self.ep_rs = [], [], []
+        return np.array(self.states),\
+                np.array(self.actions),\
+                np.array(self.probs),\
+                np.array(self.vals),\
+                np.array(self.rewards),\
+                np.array(self.dones),\
+                batches
 
-        self._build_net()
+    def store_memory(self, state, action, probs, vals, reward, done):
+        self.states.append(state)
+        self.actions.append(action)
+        self.probs.append(probs)
+        self.vals.append(vals)
+        self.rewards.append(reward)
+        self.dones.append(done)
 
-        self.sess = tf.Session()
+    def clear_memory(self):
+        self.states = []
+        self.probs = []
+        self.actions = []
+        self.rewards = []
+        self.dones = []
+        self.vals = []
 
-        if output_graph:
-            tf.summary.FileWriter("logs/", self.sess.graph)
+class ActorNetwork(nn.Module):
+    def __init__(self, **config):
+        super(ActorNetwork, self).__init__()
 
-        self.sess.run(tf.global_variables_initializer())
-
-    def _build_net(self):
-        with tf.name_scope('inputs'):
-            self.tf_obs = tf.placeholder(tf.float32, [None, self.n_features], name="observations")
-            self.tf_acts = tf.placeholder(tf.int32, [None, ], name="actions_num")
-            self.tf_vt = tf.placeholder(tf.float32, [None, ], name="actions_value")
-        # fc1
-        layer = tf.layers.dense(
-            inputs=self.tf_obs,
-            units=10,
-            activation=tf.nn.tanh,  # tanh activation
-            kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
-            bias_initializer=tf.constant_initializer(0.1),
-            name='fc1'
+        self.actor = nn.Sequential(
+                nn.Linear(*input_dims, fc1_dims),
+                nn.ReLU(),
+                nn.Linear(fc1_dims, fc2_dims),
+                nn.ReLU(),
+                nn.Linear(fc2_dims, n_actions),
+                nn.Softmax(dim=-1)
         )
-        # fc2
-        all_act = tf.layers.dense(
-            inputs=layer,
-            units=self.n_actions,
-            activation=None,
-            kernel_initializer=tf.random_normal_initializer(mean=0, stddev=0.3),
-            bias_initializer=tf.constant_initializer(0.1),
-            name='fc2'
+
+        self.optimizer = optim.Adam(self.parameters(), lr=config['alpha'])
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
+    def forward(self, state):
+        dist = self.actor(state)
+        dist = Categorical(dist)
+        
+        return dist
+
+
+class CriticNetwork(nn.Module):
+    def __init__(self, **config):
+        super(CriticNetwork, self).__init__()
+
+        self.critic = nn.Sequential(
+                nn.Linear(*input_dims, fc1_dims),
+                nn.ReLU(),
+                nn.Linear(fc1_dims, fc2_dims),
+                nn.ReLU(),
+                nn.Linear(fc2_dims, 1)
         )
 
-        self.all_act_prob = tf.nn.softmax(all_act, name='act_prob')  # use softmax to convert to probability
+        self.optimizer = optim.Adam(self.parameters(), lr=config['alpha'])
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.to(self.device)
 
-        with tf.name_scope('loss'):
-            # to maximize total reward (log_p * R) is to minimize -(log_p * R), and the tf only have minimize(loss)
-            neg_log_prob = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=all_act, labels=self.tf_acts)   # this is negative log of chosen action
-            # or in this way:
-            # neg_log_prob = tf.reduce_sum(-tf.log(self.all_act_prob)*tf.one_hot(self.tf_acts, self.n_actions), axis=1)
-            loss = tf.reduce_mean(neg_log_prob * self.tf_vt)  # reward guided loss
+    def forward(self, state):
+        value = self.critic(state)
 
-        with tf.name_scope('train'):
-            self.train_op = tf.train.AdamOptimizer(self.lr).minimize(loss)
+        return value
 
-    def choose_action(self, observation):
-        prob_weights = self.sess.run(self.all_act_prob, feed_dict={self.tf_obs: observation[np.newaxis, :]})
-        action = np.random.choice(range(prob_weights.shape[1]), p=prob_weights.ravel())  # select action w.r.t the actions prob
-        return action
+    def save_checkpoint(self):
+        T.save(self.state_dict(), self.checkpoint_file)
 
-    def store_transition(self, s, a, r):
-        self.ep_obs.append(s)
-        self.ep_as.append(a)
-        self.ep_rs.append(r)
+    def load_checkpoint(self):
+        self.load_state_dict(T.load(self.checkpoint_file))
 
-    def learn(self):
-        # discount and normalize episode reward
-        discounted_ep_rs_norm = self._discount_and_norm_rewards()
+class PolicyGradientAgent(Agent):
+    #def __init__(self, **config):
+    def __init__(self, **config):
+        super().__init__(**config)
+        
+        self.gamma = config["gamma"]
+        self.policy_clip = config['policy_clip']
+        self.n_epochs = config['n_epochs']
+        self.gae_lambda = config['gae_lambda']
 
-        # train on episode
-        self.sess.run(self.train_op, feed_dict={
-             self.tf_obs: np.vstack(self.ep_obs),  # shape=[None, n_obs]
-             self.tf_acts: np.array(self.ep_as),  # shape=[None, ]
-             self.tf_vt: discounted_ep_rs_norm,  # shape=[None, ]
-        })
+        self.actor = ActorNetwork(**config)
+        self.critic = CriticNetwork(**config)
+        self.memory = PPOMemory(config['batch_size'])
+        
+    #------------- Override the inheritance functions from Agent
+    
+    def predict(self, state):
+        state = T.tensor([state], dtype=T.float).to(self.actor.device)
 
-        self.ep_obs, self.ep_as, self.ep_rs = [], [], []    # empty episode data
-        return discounted_ep_rs_norm
+        dist = self.actor(state)
+        value = self.critic(state)
+        action = dist.sample()
 
-    def _discount_and_norm_rewards(self):
-        # discount episode rewards
-        discounted_ep_rs = np.zeros_like(self.ep_rs)
-        running_add = 0
-        for t in reversed(range(0, len(self.ep_rs))):
-            running_add = running_add * self.gamma + self.ep_rs[t]
-            discounted_ep_rs[t] = running_add
+        probs = T.squeeze(dist.log_prob(action)).item()
+        action = T.squeeze(action).item()
+        value = T.squeeze(value).item()
 
-        # normalize episode rewards
-        discounted_ep_rs -= np.mean(discounted_ep_rs)
-        discounted_ep_rs /= np.std(discounted_ep_rs)
-        return discounted_ep_rs
+        return action, probs, value
+    
+    
+    def learn(self, previous_state, action, next_state, reward, terminal):
+        return super().learn(previous_state, action, next_state, reward, terminal)
+    
+    def learn_episode(self, episode_num, **kwargs):
+        return super().learn_episode(episode_num, **kwargs)
+    
+    def save_model(self, **kwargs):
+        path = kwargs['save_path']
+        os.makedirs(path, exist_ok=True)
+        T.save(self.actor.state_dict(), path + "/actor.pt")  
+        T.save(self.critic.state_dict(), path + "/critic.pt")  
+        with open(path + "/memory.pkl", "wb") as f:
+            pickle.dump(self.memory, f)
+        with open(path + "/model_config.txt", "w") as f:
+            f.write(json.dumps(kwargs, indent = 6))
+        print("> Ending simulation, PolicyGradient model successfully saved")
+    
+    def load_model(self, **kwargs):
+        path = kwargs['load_path']
+        self.actor.load_state_dict(T.load(path + "/actor.pt"))
+        self.critic.load_state_dict(T.load(path + "/critic.pt"))
+        file_memory = open(path + "/memory.pkl", 'rb') 
+        self.memory = pickle.load(file_memory)
+        print("> Starting simulation, PolicyGradient model successfully loaded")
+    
+    
+    #----- Private part
+       
+    def _remember(self, state, action, probs, vals, reward, done):
+        self.memory.store_memory(state, action, probs, vals, reward, done)
+
+    def _choose_action(self, observation):
+        state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+
+        dist = self.actor(state)
+        value = self.critic(state)
+        action = dist.sample()
+
+        probs = T.squeeze(dist.log_prob(action)).item()
+        action = T.squeeze(action).item()
+        value = T.squeeze(value).item()
+
+        return action, probs, value
+
+    def _learn(self):
+        for _ in range(self.n_epochs):
+            state_arr, action_arr, old_prob_arr, vals_arr,\
+            reward_arr, dones_arr, batches = self.memory.generate_batches()
+
+            values = vals_arr
+            advantage = np.zeros(len(reward_arr), dtype=np.float32)
+
+            for t in range(len(reward_arr)-1):
+                discount = 1
+                a_t = 0
+                for k in range(t, len(reward_arr)-1):
+                    a_t += discount*(reward_arr[k] + self.gamma*values[k+1]*(1-int(dones_arr[k])) - values[k])
+                    discount *= self.gamma*self.gae_lambda
+                advantage[t] = a_t
+            advantage = T.tensor(advantage).to(self.actor.device)
+
+            values = T.tensor(values).to(self.actor.device)
+            for batch in batches:
+                states = T.tensor(state_arr[batch], dtype=T.float).to(self.actor.device)
+                old_probs = T.tensor(old_prob_arr[batch]).to(self.actor.device)
+                actions = T.tensor(action_arr[batch]).to(self.actor.device)
+
+                dist = self.actor(states)
+                critic_value = self.critic(states)
+
+                critic_value = T.squeeze(critic_value)
+
+                new_probs = dist.log_prob(actions)
+                prob_ratio = new_probs.exp() / old_probs.exp()
+                #prob_ratio = (new_probs - old_probs).exp()
+                weighted_probs = advantage[batch] * prob_ratio
+                weighted_clipped_probs = T.clamp(prob_ratio, 1-self.policy_clip,
+                        1+self.policy_clip)*advantage[batch]
+                actor_loss = -T.min(weighted_probs, weighted_clipped_probs).mean()
+
+                returns = advantage[batch] + values[batch]
+                critic_loss = (returns-critic_value)**2
+                critic_loss = critic_loss.mean()
+
+                total_loss = actor_loss + 0.5*critic_loss
+                self.actor.optimizer.zero_grad()
+                self.critic.optimizer.zero_grad()
+                total_loss.backward()
+                self.actor.optimizer.step()
+                self.critic.optimizer.step()
+
+        self.memory.clear_memory()        
