@@ -45,6 +45,7 @@ class DQNSolver(nn.Module):
             )
             self.convolutional_block.add_module(
                 'conv_block_' + str(i), copy.copy(block))
+                
         self.gru_block = torch.nn.Sequential(
             torch.nn.GRU(
                 input_size=int(self.input_size *
@@ -146,6 +147,13 @@ class DQNAgentDeepsense(Agent):
         if num_episode % self.replace_target == 0:
             self._update_params()
 
+
+        # Eventually reduce the exploration rate
+
+        self.exploration_rate *= self.exploration_decay
+        self.exploration_rate = max(
+            self.exploration_rate, self.exploration_min)
+
     def print_infos(self):
         print("DQNDeepsense agent")
         
@@ -215,12 +223,6 @@ class DQNAgentDeepsense(Agent):
             loss = self.loss(current_pred, target)
             loss.backward()
             self.optimizer.step()
-
-            # Eventually reduce the exploration rate
-
-            self.exploration_rate *= self.exploration_decay
-            self.exploration_rate = max(
-                self.exploration_rate, self.exploration_min)
 
     def _update_params(self):
         self.dqn_target.load_state_dict(self.dqn_validation.state_dict())
