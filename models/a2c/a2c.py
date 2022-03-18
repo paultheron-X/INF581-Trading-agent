@@ -1,107 +1,190 @@
-import tensorflow as tf
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
-import numpy as np
+import sys
+import torch  
 import gym
+import numpy as np  
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.autograd import Variable
+import matplotlib.pyplot as plt
+import pandas as pd
+from torch.distributions import Categorical
+import copy
+import os 
+import json
 
-np.random.seed(2)
-#tf.set_random_seed(2)  # reproducible
+from models import Agent
+# hyperparameters
 
-# Superparameters
-OUTPUT_GRAPH = False
-MAX_EPISODE = 3000
-DISPLAY_REWARD_THRESHOLD = 200  # renders environment if total episode reward is greater then this threshold
-MAX_EP_STEPS = 1000   # maximum time step in one episode
-RENDER = False  # rendering wastes time
-GAMMA = 0.9     # reward discount in TD error
-LR_A = 0.001    # learning rate for actor
-LR_C = 0.01     # learning rate for critic
+# Constants
+GAMMA = 0.99
 
-class Actor(object):
-    def __init__(self, sess, n_features, n_actions, lr=0.001):
-        self.sess = sess
+class ActorCritic(nn.Module):
+    def __init__(self, **kwargs):
+        super(ActorCritic, self).__init__()
+        
+        self.hidden_size_mlp = kwargs["hidden_size"]
+        self.input_size = kwargs["window_size"] * kwargs['num_features']
+        self.num_features = kwargs["num_features"]
 
-        self.s = tf.placeholder(tf.float32, [1, n_features], "state")
-        self.a = tf.placeholder(tf.int32, None, "act")
-        self.td_error = tf.placeholder(tf.float32, None, "td_error")  # TD_error
-
-        with tf.variable_scope('Actor'):
-            l1 = tf.layers.dense(
-                inputs=self.s,
-                units=20,    # number of hidden units
-                activation=tf.nn.relu,
-                kernel_initializer=tf.random_normal_initializer(0., .1),    # weights
-                bias_initializer=tf.constant_initializer(0.1),  # biases
-                name='l1'
+        #--- Creation of the Critic ------
+        self.critic = torch.nn.Sequential()
+        
+        block_input = torch.nn.Sequential(
+                nn.Linear(in_features = self.input_size, 
+                          out_features =self.hidden_size_mlp[0]),
+                nn.LeakyReLU(),
+                nn.Dropout(p = kwargs["linear_dropout"])
+            )
+        self.critic.add_module('critic_block_input', copy.copy(block_input))
+        
+        for ind in range(1, len(self.hidden_size_mlp)):
+            block = torch.nn.Sequential(
+                nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
+                          out_features =self.hidden_size_mlp[ind]),
+                nn.LeakyReLU(),
+                nn.Dropout(p = kwargs["linear_dropout"])
+            )
+            self.critic.add_module('critic_block_'+ str(ind), copy.copy(block))
+        
+        block_fin = torch.nn.Sequential(
+                nn.Linear(kwargs["hidden_size"][-1], 1),
             )
 
-            self.acts_prob = tf.layers.dense(
-                inputs=l1,
-                units=n_actions,    # output units
-                activation=tf.nn.softmax,   # get action probabilities
-                kernel_initializer=tf.random_normal_initializer(0., .1),  # weights
-                bias_initializer=tf.constant_initializer(0.1),  # biases
-                name='acts_prob'
+        self.critic.add_module('critic_block_output', copy.copy(block_fin))
+        
+        
+        #--- Creation of the Actor ------
+        self.actor = torch.nn.Sequential()
+        
+        block_input = torch.nn.Sequential(
+                nn.Linear(in_features = self.input_size, 
+                          out_features =self.hidden_size_mlp[0]),
+                nn.LeakyReLU(),
+                nn.Dropout(p = kwargs["linear_dropout"])
+            )
+        self.actor.add_module('actor_block_input', copy.copy(block_input))
+        
+        for ind in range(1, len(self.hidden_size_mlp)):
+            block = torch.nn.Sequential(
+                nn.Linear(in_features = self.hidden_size_mlp[ind-1], 
+                          out_features = self.hidden_size_mlp[ind]),
+                nn.LeakyReLU(),
+                nn.Dropout(p = kwargs["linear_dropout"])
+            )
+            self.actor.add_module('actor_block_'+ str(ind), copy.copy(block))
+        
+        block_fin = torch.nn.Sequential(
+                nn.Linear(kwargs["hidden_size"][len(self.hidden_size_mlp)-1], kwargs["num_actions"]),
+                nn.Softmax()
             )
 
-        with tf.variable_scope('exp_v'):
-            log_prob = tf.log(self.acts_prob[0, self.a])
-            self.exp_v = tf.reduce_mean(log_prob * self.td_error)  # advantage (TD_error) guided loss
+        self.actor.add_module('actor_block_output', copy.copy(block_fin))
+        
+    def forward(self, x):
+        value = self.critic(x)
+        probs = self.actor(x)
+        dist  = Categorical(probs)
+        return dist, value
+   
+class A2CAgent(Agent):
+    def __init__(self, **config):
+        super().__init__(**config)
+        self.device = 'cpu' if torch.cuda.is_available() else 'cpu'
+        
+        self.actor_critic = ActorCritic(**config).to(self.device)
+        
+        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=config['lr'])
+        
+        self.log_probs = []
+        self.values    = []
+        self.rewards   = []
+        self.masks     = []
+        self.entropy = 0 
+        
+        self.lastvalue = None
+        self.lastdist = None
+        
+    
+    #------------- Override the inheritance functions from Agent
+    
+    def predict(self, state):        
+        state = torch.FloatTensor(state).to(self.device)
+        dist, value = self.actor_critic(state)
+        action = dist.sample().detach()
+        self.lastvalue = value
+        self.lastdist = dist
+        return action
 
-        with tf.variable_scope('train'):
-            self.train_op = tf.train.AdamOptimizer(lr).minimize(-self.exp_v)  # minimize(-exp_v) = maximize(exp_v)
+    def learn(self, previous_state, action, next_state, reward, terminal):
+        self._trading_lessons(previous_state, action, next_state, reward, terminal)
 
-    def learn(self, s, a, td):
-        s = s[np.newaxis, :]
-        feed_dict = {self.s: s, self.a: a, self.td_error: td}
-        _, exp_v = self.sess.run([self.train_op, self.exp_v], feed_dict)
-        return exp_v
+    def learn_episode(self, episode_num, **kwargs):
+                
+        next_state = torch.FloatTensor(kwargs['next_state']).to(self.device)
+        _, next_value = self.actor_critic(next_state)
+        returns = self._compute_returns(next_value, self.rewards, self.masks)
 
-    def choose_action(self, s):
-        s = s[np.newaxis, :]
-        probs = self.sess.run(self.acts_prob, {self.s: s})   # get probabilities for all actions
-        return np.random.choice(np.arange(probs.shape[1]), p=probs.ravel())   # return a int
+        log_probs = torch.ravel(torch.tensor(self.log_probs)).to(self.device)
+        returns   = torch.cat(returns)
+        values    = torch.cat(self.values)
 
+        advantage = (returns - values).detach()
+        
+        
+        actor_loss  = -(log_probs * advantage).mean()
+        critic_loss = advantage.pow(2).mean()
 
-class Critic(object):
-    def __init__(self, sess, n_features, lr=0.01):
-        self.sess = sess
+        loss = actor_loss + 0.5 * critic_loss - 0.001 * self.entropy
 
-        self.s = tf.placeholder(tf.float32, [1, n_features], "state")
-        self.v_ = tf.placeholder(tf.float32, [1, 1], "v_next")
-        self.r = tf.placeholder(tf.float32, None, 'r')
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
+        # reset params
+        self.log_probs = []
+        self.values    = []
+        self.rewards   = []
+        self.masks     = []
+        self.entropy = 0 
+    
+    def print_infos(self):
+        print("A2C agent")
+    
+    def load_model(self, **kwargs):
+        path = kwargs['load_path']
+        self.actor_critic.actor.load_state_dict(torch.load(path + "/actor.pt"))
+        self.actor_critic.critic.load_state_dict(torch.load(path + "/critic.pt"))
+        print("> Starting simulation, Deepsense model successfully loaded")
+    
+    
+    def save_model(self, **kwargs):
+        path = kwargs['save_path']
+        os.makedirs(path, exist_ok=True)
+        torch.save(self.actor_critic.actor.state_dict(), path + "/actor.pt")  
+        torch.save(self.actor_critic.critic.state_dict(), path + "/critic.pt")  
+        with open(path + "/model_config.txt", "w") as f:
+            f.write(json.dumps(kwargs, indent = 6))
+        print("> Ending simulation, Deepsense model successfully saved")
+    
 
-        with tf.variable_scope('Critic'):
-            l1 = tf.layers.dense(
-                inputs=self.s,
-                units=20,  # number of hidden units
-                activation=tf.nn.relu,  # None
-                # have to be linear to make sure the convergence of actor.
-                # But linear approximator seems hardly learns the correct Q.
-                kernel_initializer=tf.random_normal_initializer(0., .1),  # weights
-                bias_initializer=tf.constant_initializer(0.1),  # biases
-                name='l1'
-            )
-
-            self.v = tf.layers.dense(
-                inputs=l1,
-                units=1,  # output units
-                activation=None,
-                kernel_initializer=tf.random_normal_initializer(0., .1),  # weights
-                bias_initializer=tf.constant_initializer(0.1),  # biases
-                name='V'
-            )
-
-        with tf.variable_scope('squared_TD_error'):
-            self.td_error = self.r + GAMMA * self.v_ - self.v
-            self.loss = tf.square(self.td_error)    # TD_error = (r+gamma*V_next) - V_eval
-        with tf.variable_scope('train'):
-            self.train_op = tf.train.AdamOptimizer(lr).minimize(self.loss)
-
-    def learn(self, s, r, s_):
-        s, s_ = s[np.newaxis, :], s_[np.newaxis, :]
-
-        v_ = self.sess.run(self.v, {self.s: s_})
-        td_error, _ = self.sess.run([self.td_error, self.train_op],
-                                          {self.s: s, self.v_: v_, self.r: r})
-        return td_error
+    #----- Private part
+    
+    def _trading_lessons(self, previous_state, action, next_state, reward, terminal):  
+        #reward = 0.1*reward
+        
+        log_prob = self.lastdist.log_prob(action)
+        self.entropy += self.lastdist.entropy().mean()
+        
+        self.log_probs.append(log_prob)
+        self.values.append(self.lastvalue)
+        self.rewards.append(torch.tensor(reward).to(self.device))
+        self.masks.append(torch.tensor(1 - terminal).to(self.device))
+        
+    def _compute_returns(self, next_value, rewards, masks, gamma=0.99):
+        R = next_value
+        returns = []
+        for step in reversed(range(len(rewards))):
+            R = rewards[step] + gamma * R * masks[step]
+            returns.insert(0, R)
+        return returns

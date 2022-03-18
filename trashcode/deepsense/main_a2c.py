@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from copy import copy
 
-from ...models.a2c.a2c_torch import A2CAgent
+from ...models.a2c.a2c import A2CAgent
 
 
 
