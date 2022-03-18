@@ -68,9 +68,6 @@ df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
 
-
-agent = PolicyGradientAgent(**config)
-#agent = DQNAgentDeepsense(**config)
 scorer = CryptoEnvScorer(env, agent, **config)
 
 if config['load']:
