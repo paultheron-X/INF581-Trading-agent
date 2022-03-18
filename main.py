@@ -7,12 +7,13 @@ import datetime
 import os
 import argparse
 
+from config_mods import config_dqn_deepsense as config
+
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 from models.policy_gradient import PolicyGradientAgent
 
 from config_mods import *
-
 
 # Parser
 parser = argparse.ArgumentParser()
@@ -23,6 +24,7 @@ parser.add_argument("--num_episode", help="num_episode", required=False)
 parser.add_argument("--save", help="save", required=False)
 parser.add_argument("--load", help="load", required=False)
 parser.add_argument("--lr", help="lr", required=False)
+parser.add_argument("--config", required=False)
 args = parser.parse_args()
 
 config = config_a2c
