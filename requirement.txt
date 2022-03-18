@@ -7,4 +7,4 @@ sklearn
 argparse
 tqdm
 datetime
-turtule
+turtle
