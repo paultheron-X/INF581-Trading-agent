@@ -7,8 +7,6 @@ import datetime
 import os
 import argparse
 
-from config_mods import config_dqn_deepsense as config
-
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 #from models.policy_gradient import PolicyGradientAgent
@@ -27,7 +25,16 @@ parser.add_argument("--lr", help="lr", required=False)
 parser.add_argument("--config", required=False)
 args = parser.parse_args()
 
-config = config_a2c
+if args.config is not None:
+    if args.config == 'dqn_base':
+        config = config_dqn_base
+    elif args.config == "dqn_deepsense":
+        config = config_dqn_deepsense
+    elif args.config == "config_a2c":
+        config = config_a2c
+
+else:
+    config = config_a2c
 
 if args.df_name is not None:
     config['df_name'] = args.df_name
