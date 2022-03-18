@@ -63,6 +63,8 @@ if args.load is not None:
 if args.load is not None:
     config['lr'] = float(args.lr)
 
+# Update path
+config['df_path'] = 'gym_trading_btc/datasets/data/' + config['df_name']
 
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
@@ -84,7 +86,7 @@ def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     #plt.plot(range(num_episodes), random_profit, label="Random profit")
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
     plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
-    plt.legend()
+    plt.legend(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
     now = datetime.datetime.now()
     dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
     os.makedirs("figs", exist_ok = True)
@@ -108,7 +110,7 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
     plt.plot(range(len(agent_profit)), relative, label="Relative profit for agent")
     plt.axhline(y = 1, linestyle = ':', label = "Optimal")
     plt.axhline(y = 0, linestyle = ':', label = "Stay")
-    plt.legend()
+    plt.legend(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
     os.makedirs("figs", exist_ok = True)
 
     now = datetime.datetime.now()
