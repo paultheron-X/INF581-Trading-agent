@@ -1,1 +1,1 @@
-from .policygradient_torch import PolicyGradientAgent
+from .policygradient import PolicyGradientAgent
