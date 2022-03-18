@@ -10,6 +10,7 @@ import argparse
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 from models.policy_gradient import PolicyGradientAgent
+from models.utils.initialization import init_weights
 
 from config_mods import *
 
@@ -29,15 +30,23 @@ if args.config is not None:
     if args.config == 'dqn_base':
         config = config_dqn_base
         agent = DQNAgentDeepsense(**config)
+        agent.dqn_validation.apply(init_weights)
+        agent.dqn_target.apply(init_weights)
     elif args.config == "dqn_deepsense":
         config = config_dqn_deepsense
         agent = DQNAgentDeepsense(**config)
+        agent.dqn_validation.apply(init_weights)
+        agent.dqn_target.apply(init_weights)
     elif args.config == "config_a2c":
         config = config_a2c
         agent = A2CAgent(**config)
+        agent.actor_critic.apply(init_weights)
+
 
 else:
     config = config_a2c
+    agent = A2CAgent(**config)
+
 
 if args.df_name is not None:
     config['df_name'] = args.df_name

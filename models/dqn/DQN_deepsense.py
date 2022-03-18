@@ -45,21 +45,24 @@ class DQNSolver(nn.Module):
             )
             self.convolutional_block.add_module(
                 'conv_block_' + str(i), copy.copy(block))
-        torch.nn.init.xavier_uniform(self.convolutional_block)
+        
 
-        self.gru_block = torch.nn.Sequential(
-            torch.nn.GRU(
-                input_size=int(self.input_size *
-                               self.filter_size[-1]/self.stride),
-                hidden_size=kwargs["gru_cell_size"],
-                num_layers=kwargs["gru_num_cells"],
-                dropout=kwargs["gru_dropout"],
-                bias=True,
-                batch_first=True,
-                bidirectional=False
+        if len(self.filter_size) > 0 :
+            self.gru_block = torch.nn.Sequential(
+                torch.nn.GRU(
+                    input_size= int(self.input_size * self.filter_size[-1]/self.stride),
+                    hidden_size=kwargs["gru_cell_size"],
+                    num_layers=kwargs["gru_num_cells"],
+                    dropout=kwargs["gru_dropout"],
+                    bias=True,
+                    batch_first=True,
+                    bidirectional=False
+                )
             )
-        )
-        torch.nn.init.xavier_uniform(self.gru_block)
+        else:
+            self.gru_block = torch.nn.Identity()
+
+
 
         self.mlp_block = torch.nn.Sequential()
 
@@ -70,15 +73,14 @@ class DQNSolver(nn.Module):
                 nn.LeakyReLU(),
                 nn.Dropout(p=kwargs["linear_dropout"])
             )
-            torch.nn.init.xavier_uniform(block.weight)
             self.mlp_block.add_module(
                 'mlp_block_' + str(ind), copy.copy(block))
+
 
         block_fin = torch.nn.Sequential(
             nn.Linear(kwargs["hidden_size"][-1], kwargs["num_actions"]),
             nn.Softmax(dim=1)
         )
-
         self.mlp_block.add_module('mlp_block_output', copy.copy(block_fin))
 
     def forward(self, x):
@@ -92,7 +94,10 @@ class DQNSolver(nn.Module):
         conv_res = torch.reshape(
             conv_res, (conv_res.shape[0], self.stride, conv_res.shape[2] * conv_res.shape[3]))
 
-        gru_res, h = self.gru_block(conv_res)
+        try :
+            gru_res, h = self.gru_block(conv_res)
+        except ValueError:
+            gru_res = self.gru_block(conv_res)
 
         # to get the output of the last
         output_gru = torch.unbind(gru_res, dim=1)[-1]
