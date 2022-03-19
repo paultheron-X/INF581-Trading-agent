@@ -25,6 +25,8 @@ parser.add_argument("--save", help="save", required=False)
 parser.add_argument("--load", help="load", required=False)
 parser.add_argument("--lr", help="lr", required=False)
 parser.add_argument("--config", required=False)
+parser.add_argument("--classifier_model", required=False)
+parser.add_argument("--classifier_objective", required=False)
 args = parser.parse_args()
 
 if args.config is not None:
@@ -65,6 +67,10 @@ if args.load is not None:
     config['load'] = int(args.load)
 if args.lr is not None:
     config['lr'] = float(args.lr)
+if args.classifier_model is not None:
+    config['model'] = args.classifier_model
+if args.classifier_objective is not None:
+    config['objective'] = args.classifier_objective
 
 # Update path
 config['df_path'] = 'gym_trading_btc/datasets/data/' + config['df_name']
