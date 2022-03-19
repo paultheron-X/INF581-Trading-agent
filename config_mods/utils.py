@@ -21,14 +21,15 @@ def get_config(config_parser):
 
     config['df_path'] = os.getcwd() + '/gym_trading_btc/datasets/data/' + \
         config_parser.get('dataset', 'DF_NAME')
+    fill_config_with(config, config_parser, str, 'dataset', 'DF_NAME')
 
     fill_config_with(config, config_parser, int, 'dataset', 'NUM_FEATURES')
-    fill_config_with(config, config_parser, float, 'dataset', 'TRAIN_TEST_SPLIT')
-    
+    fill_config_with(config, config_parser, float,
+                     'dataset', 'TRAIN_TEST_SPLIT')
+
     config['save_path'] = os.getcwd() + config_parser.get('agent', 'SAVE_PATH')
     config['load_path'] = os.getcwd() + config_parser.get('agent', 'LOAD_PATH')
 
-    
     fill_config_with(config, config_parser, int, 'agent', 'SAVE')
     fill_config_with(config, config_parser, int, 'agent', 'LOAD')
 
@@ -39,7 +40,8 @@ def get_config(config_parser):
     fill_config_with(config, config_parser, int, 'agent', 'MAX_MEM_SIZE')
 
     fill_config_with(config, config_parser, float, 'agent', 'EXPLORATION_RATE')
-    fill_config_with(config, config_parser, float, 'agent', 'EXPLORATION_DECAY')
+    fill_config_with(config, config_parser, float,
+                     'agent', 'EXPLORATION_DECAY')
     fill_config_with(config, config_parser, float, 'agent', 'EXPLORATION_MIN')
 
     fill_config_with(config, config_parser, str, 'classifier', 'OBJECTIVE')
@@ -70,7 +72,7 @@ def get_config(config_parser):
     fill_config_with(config, config_parser, int, 'gru', 'GRU_NUM_CELLS')
 
     fill_config_with(config, config_parser, int, 'print', 'TRAINING_STATE')
-    
+
     if ('train_test_split' not in config):
         raise ValueError('No train test repartition is given')
     if ('hidden_size' in config) and len(config['hidden_size']) <= 0:

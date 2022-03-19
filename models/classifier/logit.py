@@ -56,9 +56,9 @@ class ClassifierAgent(Agent):
     def predict(self, state):
         state = np.array([state])
         return self.model.predict(state)[0]
-    
+
     def load_model(self, **kwargs):
         return super().load_model(**kwargs)
-    
+
     def save_model(self, **kwargs):
         return super().save_model(**kwargs)

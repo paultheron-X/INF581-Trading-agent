@@ -1,5 +1,5 @@
 import numpy as np
-from gym_trading_btc.gym_anytrading.envs.bitcoin_env import Actions
+from gym_trading_btc.envs import Actions
 
 # best buying and selling days
 
