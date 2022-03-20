@@ -1,3 +1,4 @@
+from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 import numpy as np

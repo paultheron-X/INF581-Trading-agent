@@ -99,16 +99,10 @@ if config['save']:
 def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     #plt.plot(range(num_episodes), random_profit, label="Random profit")
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
-<<<<<<< HEAD
-    plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
-    plt.title(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
-    plt.legend()
-=======
     plt.plot(range(len(optimal_profit)),
              optimal_profit, label="'Optimal' profit")
     plt.legend(
         f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
->>>>>>> refs/remotes/origin/main
     now = datetime.datetime.now()
     dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
     os.makedirs("figs", exist_ok=True)
@@ -130,14 +124,6 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
                 relative.append(float(a - r) / (o - r))
             except:
                 relative.append(0)
-<<<<<<< HEAD
-    plt.plot(range(len(agent_profit)), relative, label="Relative profit for agent")
-    plt.axhline(y = 1, linestyle = ':', label = "Optimal")
-    plt.axhline(y = 0, linestyle = ':', label = "Stay")
-    plt.title(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
-    plt.legend()
-    os.makedirs("figs", exist_ok = True)
-=======
     plt.plot(range(len(agent_profit)), relative,
              label="Relative profit for agent")
     plt.axhline(y=1, linestyle=':', label="Optimal")
@@ -145,7 +131,6 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
     plt.legend(
         f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
     os.makedirs("figs", exist_ok=True)
->>>>>>> refs/remotes/origin/main
 
     now = datetime.datetime.now()
     dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
