@@ -33,19 +33,19 @@ class ClassifierAgent(Agent):
 
     def _model(self):
         switch = {
-            "AdaBoostClassifier": AdaBoostClassifier,
-            "BaggingClassifier": BaggingClassifier,
-            "ExtraTreesClassifier": ExtraTreesClassifier,
-            "GradientBoostingClassifier": GradientBoostingClassifier,
-            "RandomForestClassifier": RandomForestClassifier,
-            "HistGradientBoostingClassifier": HistGradientBoostingClassifier,
-            "LogisticRegression": LogisticRegression,
-            "RidgeClassifier": RidgeClassifier,
-            "SGDClassifier": SGDClassifier
+            "AdaBoostClassifier": AdaBoostClassifier(),
+            "BaggingClassifier": BaggingClassifier(),
+            "ExtraTreesClassifier": ExtraTreesClassifier(),
+            "GradientBoostingClassifier": GradientBoostingClassifier(),
+            "RandomForestClassifier": RandomForestClassifier(),
+            "HistGradientBoostingClassifier": HistGradientBoostingClassifier(max_iter=self.max_iter),
+            "LogisticRegression": LogisticRegression(max_iter=self.max_iter),
+            "RidgeClassifier": RidgeClassifier(max_iter=self.max_iter),
+            "SGDClassifier": SGDClassifier(max_iter=self.max_iter)
         }
         if self.name not in switch:
             raise NotImplementedError
-        return switch[self.name](max_iter=self.max_iter)
+        return switch[self.name]
 
     def print_infos(self):
         print(self.name, "agent")
@@ -56,9 +56,9 @@ class ClassifierAgent(Agent):
     def predict(self, state):
         state = np.array([state])
         return self.model.predict(state)[0]
-    
+
     def load_model(self, **kwargs):
         return super().load_model(**kwargs)
-    
+
     def save_model(self, **kwargs):
         return super().save_model(**kwargs)

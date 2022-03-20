@@ -10,6 +10,7 @@ import argparse
 from models.dqn import DQNAgentDeepsense
 from models.a2c import A2CAgent
 from models.policy_gradient import PolicyGradientAgent
+from models.classifier import ClassifierAgent
 from models.utils.initialization import init_weights
 
 from config_mods import *
@@ -24,6 +25,8 @@ parser.add_argument("--save", help="save", required=False)
 parser.add_argument("--load", help="load", required=False)
 parser.add_argument("--lr", help="lr", required=False)
 parser.add_argument("--config", required=False)
+parser.add_argument("--classifier_model", required=False)
+parser.add_argument("--classifier_objective", required=False)
 args = parser.parse_args()
 
 if args.config is not None:
@@ -41,6 +44,8 @@ if args.config is not None:
         config = config_a2c
         agent = A2CAgent(**config)
         agent.actor_critic.apply(init_weights)
+    elif args.config == "classifier":
+        config = config_classifier
 
 
 else:
@@ -60,14 +65,22 @@ if args.save is not None:
     config['save'] = int(args.save)
 if args.load is not None:
     config['load'] = int(args.load)
-if args.load is not None:
+if args.lr is not None:
     config['lr'] = float(args.lr)
+if args.classifier_model is not None:
+    config['model'] = args.classifier_model
+if args.classifier_objective is not None:
+    config['objective'] = args.classifier_objective
 
 # Update path
 config['df_path'] = 'gym_trading_btc/datasets/data/' + config['df_name']
 df_btc = pd.read_csv(config["df_path"], delimiter=",")
 
 env = CryptoEnv(**config)
+
+if args.config == "classifier":
+    config["X_train"], config["Y_train"], config["X_test"], config["Y_test"] = env.get_data()
+    agent = ClassifierAgent(**config)
 
 scorer = CryptoEnvScorer(env, agent, **config)
 
@@ -76,22 +89,32 @@ if config['load']:
 
 num_episodes = config['num_episode']
 
-random_profit_ep, agent_profit_ep, optimal_profit_ep, random_profit_val, agent_profit_val, optimal_profit_val = scorer.train_episodes(num_episodes)
+random_profit_ep, agent_profit_ep, optimal_profit_ep, random_profit_val, agent_profit_val, optimal_profit_val = scorer.train_episodes(
+    num_episodes)
 
 if config['save']:
     agent.save_model(**config)
 
+
 def plot_asolute(random_profit, agent_profit, optimal_profit, title):
     #plt.plot(range(num_episodes), random_profit, label="Random profit")
     plt.plot(range(len(agent_profit)), agent_profit, label="Agent profit")
+<<<<<<< HEAD
     plt.plot(range(len(optimal_profit)), optimal_profit, label="'Optimal' profit")
     plt.title(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
     plt.legend()
+=======
+    plt.plot(range(len(optimal_profit)),
+             optimal_profit, label="'Optimal' profit")
+    plt.legend(
+        f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
+>>>>>>> refs/remotes/origin/main
     now = datetime.datetime.now()
     dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
-    os.makedirs("figs", exist_ok = True)
+    os.makedirs("figs", exist_ok=True)
     plt.savefig(title+"_"+dt_string+".png")
     plt.clf()
+
 
 def plot_relative(random_profit, agent_profit, optimal_profit, title):
     relative = []
@@ -107,19 +130,33 @@ def plot_relative(random_profit, agent_profit, optimal_profit, title):
                 relative.append(float(a - r) / (o - r))
             except:
                 relative.append(0)
+<<<<<<< HEAD
     plt.plot(range(len(agent_profit)), relative, label="Relative profit for agent")
     plt.axhline(y = 1, linestyle = ':', label = "Optimal")
     plt.axhline(y = 0, linestyle = ':', label = "Stay")
     plt.title(f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
     plt.legend()
     os.makedirs("figs", exist_ok = True)
+=======
+    plt.plot(range(len(agent_profit)), relative,
+             label="Relative profit for agent")
+    plt.axhline(y=1, linestyle=':', label="Optimal")
+    plt.axhline(y=0, linestyle=':', label="Stay")
+    plt.legend(
+        f'Model {args.config} ; DF f{config["df_name"]} \nLR {config["lr"]} ; Pretrained {"True" if config["load"] == 1 else "False"}')
+    os.makedirs("figs", exist_ok=True)
+>>>>>>> refs/remotes/origin/main
 
     now = datetime.datetime.now()
     dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
     plt.savefig(title+"_"+dt_string+".png")
 
 
-plot_asolute(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/asolute-agent-profit_episode')
-plot_relative(random_profit_ep, agent_profit_ep, optimal_profit_ep, title='figs/relative-agent-profit_episode')
-plot_asolute(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/asolute-agent-profit_validation')
-plot_relative(random_profit_val, agent_profit_val, optimal_profit_val, title='figs/relative-agent-profit_validation')
+plot_asolute(random_profit_ep, agent_profit_ep, optimal_profit_ep,
+             title='figs/asolute-agent-profit_episode')
+plot_relative(random_profit_ep, agent_profit_ep, optimal_profit_ep,
+              title='figs/relative-agent-profit_episode')
+plot_asolute(random_profit_val, agent_profit_val, optimal_profit_val,
+             title='figs/asolute-agent-profit_validation')
+plot_relative(random_profit_val, agent_profit_val, optimal_profit_val,
+              title='figs/relative-agent-profit_validation')
