@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from gym import spaces
@@ -271,29 +272,48 @@ class CryptoEnv:
             prices = self.prices
         else:
             raise NotImplementedError
-
-        plt.plot(prices)
+        
+        prices_ = prices[:]
         position_history = np.array(self._position_history)
         buy_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Buy.value])
-        buy_val = np.array([prices[a] for a in buy_ind])
-        plt.scatter(buy_ind, buy_val, color='green')
+        buy_val = np.array([prices_[a] for a in buy_ind])
 
         sell_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Sell.value])
-        sell_val = np.array([prices[a] for a in sell_ind])
-        plt.scatter(sell_ind, sell_val, color='red')
+        sell_val = np.array([prices_[a] for a in sell_ind])
 
         stay_ind = np.array(
             [int(start+i) for i, a in enumerate(position_history) if a == Actions.Stay.value])
-        stay_val = np.array([prices[a] for a in stay_ind])
-        plt.scatter(stay_ind, stay_val, color='yellow')
+        stay_val = np.array([prices_[a] for a in stay_ind])
+    
+        # clamp indices
+        num = len(prices)
+        LENGTH = 100 
+        
+        prices = prices[num - 3*LENGTH:]
+    
+        buy_ind = buy_ind[num - LENGTH:]
+        buy_val = buy_val[num - LENGTH:]
+        sell_ind = sell_ind[num - LENGTH:]
+        sell_val = sell_val[num - LENGTH:]
+        stay_ind = stay_ind[num - LENGTH:]
+        stay_val = stay_val[num - LENGTH:]
+        
+        
+        #plot
+        plt.plot(prices)
+        plt.scatter(buy_ind, buy_val, color='green', s = 1)
+        plt.scatter(sell_ind, sell_val, color='red', s = 1)
+        plt.scatter(stay_ind, stay_val, color='yellow', s = 1)
 
         plt.suptitle(
             "Total Reward: %.6f" % self._total_reward + ' ~ ' +
             "Total Portfolio: %.6f" % self._total_profit
         )
-        plt.show()
+        now = datetime.datetime.now()
+        dt_string = now.strftime("%d-%m-%Y %H:%M:%S")
+        plt.savefig('figs/decision/decision'+"-"+dt_string+".png")
 
     def close(self):
         plt.close()

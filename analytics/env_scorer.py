@@ -14,10 +14,13 @@ class CryptoEnvScorer():
         self.random = Agent(**config)
         self.last_tick = 0
 
-    def test(self):
+    def test(self, i):
         self.env.reset(training=False)
         tick = self.env._padding_tick
         random_profit = self.test_agent(self.random)
+        if i%500 ==0:
+            #self.env.render_all()
+            pass
         self.env.reset_to(tick, training=False)
         agent_profit = self.test_agent(self.agent)
         self.env.reset_to(tick, training=False)
@@ -79,7 +82,7 @@ class CryptoEnvScorer():
             if (optimal_profit < agent_profit or optimal_profit < random_profit):
                 print("[Warning] : non optimal profit found")
             if (i % 100 == 0):
-                r, a, o = self.test()
+                r, a, o = self.test(i)
                 random_profits_validation[i//100] = r
                 agent_profits_validation[i//100] = a
                 optimal_profits_validation[i//100] = o
