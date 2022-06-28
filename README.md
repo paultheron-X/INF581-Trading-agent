@@ -1,6 +1,9 @@
 # Trading agent: trading bitcoin with reinforcement learning
 *an INF581 project*
 
+* Report for this project is the file Reinforcement_Learning_Project.pdf
+
+
 This repository provides an environment based on the gym architecture to implement a trading agent on bitcoin data from 2017 to 2022. It provides multiple state of the art reinforcement learning algoritms (namely [Logistic regression](#Logistic-regression), [Deep Qlearning](#deepqlearning), [A2C](#A2C) and [PolicyGradient](#Policygradient)).
 
 ## Table of contents
